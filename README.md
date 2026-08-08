@@ -1,8 +1,8 @@
-# Pathfinder
+# UnseenPath
 
 > **Discover what you didn't know to ask.**
 
-Pathfinder is a discovery-first roadmap for newcomer high-school students in the United States. It is a polished hackathon MVP built as a fully local, no-login web app.
+UnseenPath is a discovery-first roadmap for newcomer high-school students in the United States. It is a polished hackathon MVP built as a fully local, no-login web app.
 
 ## Problem
 
@@ -14,7 +14,7 @@ Newcomer high-school students in the U.S., especially students who are still lea
 
 ## Solution
 
-Pathfinder changes the model from **Question → Answer** to:
+UnseenPath changes the model from **Question → Answer** to:
 
 **Unknown → Discovery → Awareness → Action**
 
@@ -26,16 +26,19 @@ Instead of behaving like a generic chatbot, it proactively surfaces concepts and
 - Fast onboarding for grade, time in the U.S., interests, college plans, and discovery needs.
 - Rule-based personal discovery feed organized into “Important for you now,” “You may not know this exists,” and “Coming soon.”
 - Meaningful ranking based on grade, time in the U.S., academic interests, college plans, and the kinds of help a student selected.
+- Optional U.S. state selection, stored locally to prepare for future localized guidance without claiming complete state-specific coverage.
 - Plain-language recommendation reasons on discovery and opportunity cards—no AI API required.
 - Detail views explaining what each school concept is, why it matters, who it is for, timing, and one practical next step.
-- Opportunity explorer with 25 static examples across Computer Science, Engineering, Biology / Medicine, Business, and Art / Design.
-- Examples cover hackathons, competitions, research, programs, robotics, internships, clubs, and projects.
+- Opportunity explorer with 25 static verified resources and clearly labeled examples across Computer Science, Engineering, Biology / Medicine, Business, and Art / Design.
+- Listings cover hackathons, competitions, research, programs, robotics, internships, clubs, and projects.
 - The default opportunity view always shows the full catalog, with personal matches ranked first; filters narrow results only when a student chooses them.
-- Clear sample-listing labels separate discovery examples from real-time verified openings.
+- Clear badges distinguish verified official resources from illustrative example listings.
+- Opportunity profile modals use a spacious, accessible hierarchy for recommendation, eligibility, timing, value, and actions.
 - Filters for interest, grade, format, type, and beginner friendliness.
 - A timeline-based roadmap with planned, in-progress, and completed states.
 - “My Journey” activity history and a printable activity-summary export.
-- Local persistence for profile choices, known concepts, saved items, and completion status.
+- Local persistence for profile choices, discovery feedback, roadmap goals, saved items, and completion status.
+- Individual “I know this” and “I didn’t know this” discovery feedback, plus editable personal goals on roadmap items.
 - One-click demo mode for judges: a grade-10 Computer Science newcomer path with an unknown school concept, a relevant opportunity match, an upcoming timing alert, and a pre-saved roadmap item.
 - Reset control for repeatable demos.
 
@@ -43,7 +46,7 @@ Instead of behaving like a generic chatbot, it proactively surfaces concepts and
 
 1. A student completes the short onboarding flow, or a judge selects **Try Demo**.
 2. Simple client-side rules prioritize relevant discovery topics based on grade and interests.
-3. The student reads details, marks concepts as known, and saves useful topics or opportunities.
+3. The student reads details, marks concepts as known or newly discovered, and saves useful topics or opportunities.
 4. Saved ideas become timeline items the student can plan, begin, complete, and later export as an activity summary.
 
 ## Judge demo (under 30 seconds)
@@ -51,7 +54,7 @@ Instead of behaving like a generic chatbot, it proactively surfaces concepts and
 1. Open the landing page and select **Try Demo**.
 2. The demo loads Maya: Grade 10, less than one year in the U.S., interested in Computer Science, and considering college.
 3. Point out the school concept, hidden discovery, timing alert, and personalized opportunity match on the dashboard.
-4. Open **Opportunities** to show all 25 examples ranked for Maya. Try a filter and save one item.
+4. Open **Opportunities** to show all 25 verified resources and examples ranked for Maya. Try a filter and save one item.
 5. Open **My Roadmap**, change an item from **Planned** to **In progress**, then **Completed** to show it appear in **My Journey**.
 6. Select **Export Activity Summary** to open the clean printable summary.
 7. Use **Reset** to return the app to a clean state for the next judge.
@@ -83,7 +86,7 @@ There is no backend, login system, paid API, framework, or build step.
 
 ## Why it is different
 
-Most tools wait for a student to formulate a question. Pathfinder starts one step earlier: it makes important possibilities visible before a student knows their name. The main experience is deliberately **Discovery → Awareness → Planning → Action**, not a blank chatbot prompt.
+Most tools wait for a student to formulate a question. UnseenPath starts one step earlier: it makes important possibilities visible before a student knows their name. The main experience is deliberately **Discovery → Awareness → Planning → Action**, not a blank chatbot prompt.
 
 ## Future improvements
 
@@ -120,4 +123,4 @@ No environment variables, server rewrites, API keys, or backend are required.
 
 ## Important note
 
-Educational requirements and opportunities can vary by school, district, state, and student circumstances. Students should confirm important requirements with their school counselor or official sources. Opportunity records in this MVP are examples for discovery, not real-time verified openings.
+Educational requirements and opportunities can vary by school, district, state, and student circumstances. Students should confirm important requirements with their school counselor or official sources. “Verified resource” listings link to real official organizations but are not checked in real time; “Example” listings are illustrative categories rather than actual openings.
