@@ -24,21 +24,26 @@ UnseenPath turns the student journey into:
 
 **Discovery → Awareness → Planning → Action**
 
-- A short onboarding flow collects grade, time studying in the U.S., academic interests, college plans, and discovery interests.
+- A short onboarding flow collects grade, time studying in the U.S., multiple academic interests, college plans, and discovery interests.
+- Fifteen student-friendly interest choices cover technology, health, art, business, law, media, education, skilled trades, and more. An “Undecided / Exploring” path turns broad curiosity signals into several fields to consider without prescribing a career.
 - A rule-based Discovery feed prioritizes useful concepts for the student's grade and interests.
 - “I know this” and “I didn't know this” feedback lets students track familiarity and change their response later.
-- An Opportunities explorer presents 25 verified resources and clearly labeled examples across five interest areas.
+- Possible Path cards connect each major field to subfields and five manageable exploration steps. They are explicitly not admission requirements.
+- An Opportunities explorer presents 70 verified resources and clearly labeled examples, with five balanced options in each of 14 major interest areas.
 - Spacious Opportunity Details explain eligibility, format, timing, value, and why an item was recommended.
-- Saved topics and opportunities become roadmap steps with planned, in-progress, and completed states.
+- A progressive Career Explorer organizes 68 profiles into 13 career families with search, filters, high-school exploration ideas, related careers, and related opportunities.
+- Saved topics, opportunities, and career profiles become roadmap steps with planned, in-progress, and completed states.
 - Each roadmap item includes an editable “Why I'm doing this” goal.
 - Completed steps appear in My Journey and can be exported as a printable activity summary.
-- A one-click Demo Mode gives hackathon judges a complete Grade 10 Computer Science newcomer profile.
+- A one-click Demo Mode gives hackathon judges a complete Grade 10 Computer Science & Technology newcomer profile.
 
 All personalization is deterministic and rule-based. The MVP does not use an AI API, authentication, a backend, or a database.
 
 ## How We Built It
 
-The project is a static single-page web app with hash-based navigation. Content lives in JavaScript data files, while a client-side recommendation engine scores concepts and opportunities using grade, newcomer status, interests, college plans, and selected discovery needs.
+The project is a static single-page web app with hash-based navigation. Content lives in JavaScript data files, while a client-side recommendation engine scores concepts, opportunities, and career profiles using grade, newcomer status, interests, exploration signals, college plans, and selected discovery needs.
+
+The content model connects the same interest taxonomy to Discovery topics, Possible Paths, career families, Opportunities, and Roadmap items. This prevents those experiences from behaving like unrelated lists and keeps an Art, Health, Law, Business, Education, or Skilled Trades profile from being dominated by coding content.
 
 Application state is stored in `localStorage`, including the student profile, discovery feedback, saved roadmap items, personal goals, and completion history. The interface uses accessible native controls and dialogs, responsive CSS, relative asset paths, and no build step.
 
@@ -61,6 +66,7 @@ Opportunity records are intentionally separated into:
 
 - Designing for students who do not yet know the vocabulary needed to search for help.
 - Making personalization useful without a backend or AI API.
+- Expanding content depth across 14 fields without overwhelming onboarding or dumping every career onto one screen.
 - Keeping sample opportunity categories visually distinct from verified official resources.
 - Preserving a clear recommendation hierarchy while keeping the interface calm and readable.
 - Making the full Discovery → Roadmap story understandable to judges in under 30 seconds.
@@ -69,7 +75,10 @@ Opportunity records are intentionally separated into:
 ## Accomplishments
 
 - Built a complete no-login student journey from discovery through activity history.
-- Created 25 opportunity records across Computer Science, Engineering, Biology / Medicine, Business, and Art / Design.
+- Created 70 opportunity records with equal five-record coverage across 14 major fields; every field includes both official verified resources and example opportunity types.
+- Built 68 concise career profiles across 13 career families and connected them to interests, high-school exploration steps, opportunities, and the Roadmap.
+- Added 75 discovery topics, including broad newcomer knowledge and two field-specific discoveries for every major interest.
+- Added development-only content equity validation for IDs, counts, relationships, URL formats, paths, and subfields.
 - Added rule-based, plain-language explanations for personalized recommendations.
 - Built a focused Demo Mode with personalized concepts, an opportunity match, timing guidance, and a pre-saved roadmap step.
 - Implemented persistent familiarity feedback, editable roadmap goals, and a printable activity summary.
@@ -82,6 +91,7 @@ Opportunity records are intentionally separated into:
 - For newcomer students, revealing vocabulary and possibilities can be as important as answering questions.
 - A strong demo should show the whole product loop immediately, not require judges to construct a profile first.
 - Clear labels and disclaimers are essential when static examples and real resources appear together.
+- Content equity requires shared taxonomy and validation, not simply adding a few extra cards to underrepresented fields.
 
 ## What's Next
 
@@ -99,12 +109,13 @@ The complete flow takes under 30 seconds:
 
 1. Open the [live demo](https://linannyu.github.io/UnseenPath/).
 2. Select **Try Demo**.
-3. Point out the personalized Discovery feed, unfamiliar concept, and upcoming timing guidance.
-4. Open **Opportunities** and show the recommendation reason on a relevant card.
-5. Open **Details**, then save the opportunity to the roadmap.
-6. Open **My Roadmap** and change an item from **Planned** to **In progress**, then **Completed**.
-7. Show the completed item in **My Journey** and select **Export Activity Summary**.
-8. Use **Reset** to return the browser to a clean state.
+3. Point out the personalized Discovery feed, unfamiliar concept, upcoming timing guidance, career match, and Possible Path.
+4. Open **Career Explorer** and show a related profile, high-school exploration ideas, and connected opportunities.
+5. Open **Opportunities** and show the recommendation reason on a relevant card.
+6. Open **Details**, then save the opportunity to the roadmap.
+7. Open **My Roadmap** and change an item from **Planned** to **In progress**, then **Completed**.
+8. Show the completed item in **My Journey** and select **Export Activity Summary**.
+9. Use **Reset** to return the browser to a clean state.
 
 ## Run Locally
 
@@ -116,6 +127,12 @@ python3 -m http.server 8000
 
 Then open [http://localhost:8000](http://localhost:8000).
 
+Run the development-only content equity check with:
+
+```bash
+node scripts/validate-content.cjs
+```
+
 ## Project Structure
 
 ```text
@@ -124,11 +141,15 @@ Then open [http://localhost:8000](http://localhost:8000).
 ├── assets/
 │   └── styles.css
 ├── data/
+│   ├── interests.js
 │   ├── topics.js
 │   ├── opportunities.js
+│   ├── careers.js
 │   └── rules.js
-└── js/
-    └── app.js
+├── js/
+│   └── app.js
+└── scripts/
+    └── validate-content.cjs
 ```
 
 ## Deployment

@@ -7,14 +7,18 @@
   let state = loadState();
   let onboardingChoices = emptyChoices();
   let hasInitializedFilters = false;
+  let careerDisplayLimit = 12;
 
   const $ = (selector, parent = document) => parent.querySelector(selector);
   const $$ = (selector, parent = document) => [...parent.querySelectorAll(selector)];
   const topicById = (id) => window.TOPICS.find((topic) => topic.id === id);
   const opportunityById = (id) => window.OPPORTUNITIES.find((opportunity) => opportunity.id === id);
+  const careerById = (id) => window.CAREERS.find((career) => career.id === id);
+  const interestByName = (name) => window.INTEREST_AREAS.find((interest) => interest.name === name);
+  const careerFamilyById = (id) => window.CAREER_FAMILIES.find((family) => family.id === id);
 
   function emptyChoices() {
-    return { grade: '', usStudy: '', interests: [], collegePlans: '', helpDiscovering: [] };
+    return { grade: '', usStudy: '', interests: [], explorationSignals: [], collegePlans: '', helpDiscovering: [] };
   }
 
   function loadState() {
@@ -25,6 +29,16 @@
         parsed.profile.usStudy = 'Less than 1 year';
       }
       if (parsed?.profile) delete parsed.profile.studyState;
+      if (parsed?.profile) {
+        const interestMigrations = {
+          'Computer Science': 'Computer Science & Technology',
+          'Biology / Medicine': 'Biology & Health',
+          Business: 'Business & Entrepreneurship',
+          'Not sure yet': 'Undecided / Exploring'
+        };
+        parsed.profile.interests = (parsed.profile.interests || []).map((interest) => interestMigrations[interest] || interest);
+        parsed.profile.explorationSignals = parsed.profile.explorationSignals || [];
+      }
       if (!parsed) return { profile: null, knownTopics: [], discoveryResponses: {}, saved: [] };
       parsed.discoveryResponses = { ...(parsed.discoveryResponses || {}) };
       (parsed.knownTopics || []).forEach((id) => { if (!parsed.discoveryResponses[id]) parsed.discoveryResponses[id] = 'known'; });
@@ -53,7 +67,7 @@
   }
 
   function currentProfile() {
-    return state.profile || { grade: '10', usStudy: '', interests: ['Not sure yet'], collegePlans: 'Maybe', helpDiscovering: [] };
+    return state.profile || { grade: '10', usStudy: '', interests: ['Undecided / Exploring'], explorationSignals: [], collegePlans: 'Maybe', helpDiscovering: [] };
   }
 
   function isDemoProfile() {
@@ -61,7 +75,7 @@
   }
 
   function navigate(route) {
-    const validRoutes = ['home', 'onboarding', 'dashboard', 'opportunities', 'roadmap'];
+    const validRoutes = ['home', 'onboarding', 'dashboard', 'opportunities', 'careers', 'roadmap'];
     const target = validRoutes.includes(route) ? route : 'home';
     if (location.hash.slice(1) !== target) {
       location.hash = target;
@@ -77,6 +91,7 @@
     if (selectedRoute === 'onboarding') renderOnboarding();
     if (selectedRoute === 'dashboard') renderDashboard();
     if (selectedRoute === 'opportunities') renderOpportunities();
+    if (selectedRoute === 'careers') renderCareers();
     if (selectedRoute === 'roadmap') renderRoadmap();
     window.scrollTo({ top: 0, behavior: 'instant' });
   }
@@ -85,8 +100,31 @@
     return Number(currentProfile().grade) || 10;
   }
 
+  function selectedInterests() {
+    return currentProfile().interests.filter((interest) => interest !== 'Undecided / Exploring');
+  }
+
+  function suggestedInterests() {
+    const counts = new Map();
+    (currentProfile().explorationSignals || []).forEach((signal) => {
+      (window.EXPLORATION_SIGNALS[signal] || []).forEach((interest, index) => {
+        counts.set(interest, (counts.get(interest) || 0) + (3 - index));
+      });
+    });
+    return [...counts.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).map(([interest]) => interest).slice(0, 4);
+  }
+
   function profileInterests() {
-    return currentProfile().interests.filter((interest) => interest !== 'Not sure yet');
+    const selected = selectedInterests();
+    return selected.length ? selected : suggestedInterests();
+  }
+
+  function isExploringProfile() {
+    return currentProfile().interests.includes('Undecided / Exploring');
+  }
+
+  function suggestionSignalForArea(area) {
+    return (currentProfile().explorationSignals || []).find((signal) => (window.EXPLORATION_SIGNALS[signal] || []).includes(area));
   }
 
   function isNewcomerProfile() {
@@ -97,12 +135,12 @@
     const help = currentProfile().helpDiscovering;
     const mapping = {
       'School system': ['School system', 'Support', 'Academics'],
-      'College preparation': ['College prep'],
+      'College preparation': ['College prep', 'Postsecondary options', 'Financial aid'],
       Competitions: ['Opportunity'],
       Internships: ['Career exploration', 'Opportunity'],
       Extracurriculars: ['Community', 'Skill-building', 'Opportunity'],
-      'Financial aid': ['College prep'],
-      'Career opportunities': ['Career exploration', 'Skill-building']
+      'Financial aid': ['Financial aid'],
+      'Career opportunities': ['Career exploration', 'Skill-building', 'Field discovery']
     };
     return help.some((choice) => (mapping[choice] || []).includes(topic.category));
   }
@@ -110,15 +148,16 @@
   function topicScore(topic) {
     const profile = currentProfile();
     const grade = gradeNumber();
+    const interests = profileInterests();
     const priorities = window.RECOMMENDATION_RULES.gradePriorities[grade] || [];
     const priorityIndex = priorities.indexOf(topic.id);
-    const interestRuleMatch = profile.interests.some((interest) => (window.RECOMMENDATION_RULES.interestTopics[interest] || []).includes(topic.id));
+    const interestRuleMatch = interests.some((interest) => (window.RECOMMENDATION_RULES.interestTopics[interest] || []).includes(topic.id));
     let score = priorityIndex === -1 ? 5 : 150 - priorityIndex * 11;
-    if (topic.interests.some((interest) => profile.interests.includes(interest))) score += 58;
+    if (topic.interests.some((interest) => interests.includes(interest))) score += 88;
     if (interestRuleMatch) score += 32;
     if (topicMatchesDiscoveryHelp(topic)) score += 28;
     if (isNewcomerProfile() && ['School system', 'Support'].includes(topic.category)) score += 34;
-    if (profile.collegePlans === 'Yes' && topic.category === 'College prep') score += 18;
+    if (profile.collegePlans === 'Yes' && ['College prep', 'Postsecondary options', 'Financial aid'].includes(topic.category)) score += 18;
     if (profile.collegePlans !== 'Yes' && ['Skill-building', 'Community', 'Career exploration'].includes(topic.category)) score += 10;
     if (topic.grades.includes(grade)) score += 12;
     if (state.discoveryResponses[topic.id] === 'known') score -= 80;
@@ -130,11 +169,13 @@
     if (!state.profile) return 'Suggested as a useful high-school concept to explore.';
     const profile = currentProfile();
     const interest = profileInterests().find((item) => topic.interests.includes(item));
+    const signal = interest && suggestionSignalForArea(interest);
+    if (signal && isExploringProfile()) return `You might enjoy exploring this because “${signal.toLowerCase()}” sounded interesting to you.`;
     if (interest) return `Recommended because you’re a Grade ${profile.grade} student interested in ${interest}.`;
     if (isNewcomerProfile() && ['School system', 'Support'].includes(topic.category)) {
       return `Recommended because you’re in Grade ${profile.grade} and still getting familiar with the U.S. school system.`;
     }
-    if (profile.collegePlans === 'Yes' && topic.category === 'College prep') {
+    if (profile.collegePlans === 'Yes' && ['College prep', 'Postsecondary options', 'Financial aid'].includes(topic.category)) {
       return `Recommended because you’re in Grade ${profile.grade} and considering college.`;
     }
     return `Recommended for Grade ${profile.grade}: this supports ${window.RECOMMENDATION_RULES.gradeFocusLabels[profile.grade]}.`;
@@ -172,38 +213,89 @@
     const profile = currentProfile();
     const interestMatch = profileInterests().includes(opportunity.area);
     const gradeMatch = opportunity.grades.includes(Number(profile.grade));
+    const signal = suggestionSignalForArea(opportunity.area);
+    if (interestMatch && signal && isExploringProfile()) return `You might enjoy exploring ${opportunity.area} because “${signal.toLowerCase()}” sounded interesting to you.`;
     if (interestMatch && gradeMatch) return `Recommended because you’re a Grade ${profile.grade} student interested in ${opportunity.area}.`;
     if (interestMatch) return `Ranked higher because you selected ${opportunity.area} as an interest.`;
     if (gradeMatch) return `Recommended because it is designed for students in Grade ${profile.grade}.`;
     return 'A nearby field to explore if you want to try something new.';
   }
 
+  function careerScore(career) {
+    const family = careerFamilyById(career.familyId);
+    if (!family) return 0;
+    const interests = profileInterests();
+    let score = family.interests.reduce((total, interest) => total + (interests.includes(interest) ? 90 : 0), 0);
+    if (isExploringProfile() && family.interests.some((interest) => suggestedInterests().includes(interest))) score += 25;
+    if (currentProfile().helpDiscovering.includes('Career opportunities')) score += 14;
+    if (state.saved.some((item) => item.kind === 'career' && item.sourceId === career.id)) score += 3;
+    return score;
+  }
+
+  function rankedCareers() {
+    return [...window.CAREERS].sort((a, b) => careerScore(b) - careerScore(a) || a.title.localeCompare(b.title));
+  }
+
+  function careerRecommendationReason(career) {
+    const family = careerFamilyById(career.familyId);
+    if (!state.profile || !family) return 'Suggested as one possible career to learn about—not a decision you need to make.';
+    const interest = family.interests.find((item) => profileInterests().includes(item));
+    const signal = interest && suggestionSignalForArea(interest);
+    if (interest && signal && isExploringProfile()) return `You might enjoy exploring this because “${signal.toLowerCase()}” sounded interesting to you.`;
+    if (interest) return `Recommended because it connects with your interest in ${interest}.`;
+    return 'A different kind of work to explore if you want to widen your view.';
+  }
+
   function renderDashboard() {
     const profile = currentProfile();
     const grade = gradeNumber();
+    const interests = profileInterests();
     const topics = recommendedTopics();
-    const now = topics.slice(0, 3);
+    const interestLead = topics.find((topic) => topic.interests.some((interest) => interests.includes(interest)));
+    const now = [...new Set([topics[0], topics[1], interestLead || topics[2]])].slice(0, 3);
     const unused = topics.filter((topic) => !now.includes(topic));
     // Always lead the hidden-opportunity section with an unfamiliar school-system
     // concept, then add interest-led discoveries. This keeps the product's core
     // promise visible even for students with a very specific interest.
     const hiddenSystem = unused.filter((topic) => topic.lane === 'unknown' && ['School system', 'Support', 'Academics'].includes(topic.category));
-    const interestDiscoveries = unused.filter((topic) => !hiddenSystem.includes(topic) && (topic.lane === 'unknown' || topic.interests.some((interest) => profile.interests.includes(interest))));
-    const unknown = [...hiddenSystem, ...interestDiscoveries].slice(0, 3);
+    const interestDiscoveries = unused.filter((topic) => topic.interests.some((interest) => interests.includes(interest)));
+    const otherUnknown = unused.filter((topic) => topic.lane === 'unknown' && !hiddenSystem.includes(topic) && !interestDiscoveries.includes(topic));
+    const unknown = [...new Set([hiddenSystem[0], ...interestDiscoveries.slice(0, 2), ...otherUnknown])].filter(Boolean).slice(0, 3);
     const afterUnknown = unused.filter((topic) => !unknown.includes(topic));
     const soon = afterUnknown.filter((topic) => ['soon', 'future'].includes(topic.lane)).slice(0, 3);
 
     $('#profile-grade').textContent = `Grade ${profile.grade}`;
-    $('#profile-interests').textContent = profile.interests.filter((item) => item !== 'Not sure yet').slice(0, 2).join(' · ') || 'Exploring your interests';
+    $('#profile-interests').textContent = selectedInterests().slice(0, 2).join(' · ') || 'Exploring your interests';
     $('.title-name').textContent = isDemoProfile() ? ', Maya' : '';
     $('#dashboard-subtitle').textContent = window.RECOMMENDATION_RULES.gradeMessages[grade];
     $('#insight-banner').innerHTML = `<span aria-hidden="true">✦</span><div><strong>${isDemoProfile() ? 'Upcoming timing alert:' : 'Your path is taking shape.'}</strong> ${grade === 10 ? 'Course planning and many summer programs can have early deadlines—start exploring before winter and spring application windows.' : 'Save anything that feels relevant; you can turn it into a small, manageable next step later.'}</div>`;
     const featuredOpportunity = rankedOpportunities().find((opportunity) => opportunity.grades.includes(grade)) || rankedOpportunities()[0];
     const featuredStatus = featuredOpportunity && opportunityIsVerified(featuredOpportunity) ? 'VERIFIED RESOURCE' : 'EXAMPLE';
     $('#dashboard-opportunity-match').innerHTML = featuredOpportunity ? `<span class="quick-opportunity-icon" style="--accent:${areaColor(featuredOpportunity.area)}" aria-hidden="true">${featuredOpportunity.icon}</span><div><span class="micro-label">YOUR OPPORTUNITY MATCH · ${featuredStatus}</span><h2>${escapeHtml(featuredOpportunity.name)}</h2><p>${escapeHtml(opportunityRecommendationReason(featuredOpportunity))}</p></div><button class="button button-secondary button-small" type="button" data-action="detail-opportunity" data-id="${featuredOpportunity.id}">Explore match →</button>` : '';
+    const featuredCareer = rankedCareers()[0];
+    const featuredCareerFamily = featuredCareer && careerFamilyById(featuredCareer.familyId);
+    $('#dashboard-career-match').innerHTML = featuredCareer ? `<span class="quick-opportunity-icon" style="--accent:${areaColor(featuredCareerFamily.interests[0])}" aria-hidden="true">${featuredCareerFamily.icon}</span><div><span class="micro-label">CAREER TO EXPLORE · ${escapeHtml(featuredCareerFamily.name.toUpperCase())}</span><h2>${escapeHtml(featuredCareer.title)}</h2><p>${escapeHtml(careerRecommendationReason(featuredCareer))}</p></div><button class="button button-secondary button-small" type="button" data-action="detail-career" data-id="${featuredCareer.id}">View profile →</button>` : '';
+    const explorationBanner = $('#exploration-banner');
+    if (isExploringProfile()) {
+      const suggestions = interests.length ? interests.slice(0, 3) : ['Art & Design', 'Biology & Health', 'Skilled Trades & Technical Careers'];
+      explorationBanner.hidden = false;
+      explorationBanner.innerHTML = `<span aria-hidden="true">?</span><div><strong>You might enjoy exploring…</strong><p>${suggestions.map(escapeHtml).join(' · ')}</p><small>These are starting points based on what sounded interesting—not career predictions.</small></div>`;
+    } else {
+      explorationBanner.hidden = true;
+      explorationBanner.innerHTML = '';
+    }
     $('#now-topics').innerHTML = now.map(topicCard).join('');
     $('#unknown-topics').innerHTML = (unknown.length ? unknown : topics.slice(3, 6)).map(topicCard).join('');
     $('#soon-topics').innerHTML = (soon.length ? soon : topics.slice(6, 9)).map(topicCard).join('');
+    renderPathways();
+  }
+
+  function renderPathways() {
+    const preferred = state.exploringInterest ? [state.exploringInterest, ...profileInterests()] : profileInterests();
+    const names = [...new Set(preferred)].slice(0, 3);
+    const fallback = isExploringProfile() ? ['Undecided / Exploring'] : ['Computer Science & Technology'];
+    const pathways = (names.length ? names : fallback).map(interestByName).filter(Boolean);
+    $('#pathway-list').innerHTML = pathways.map((interest) => `<article class="pathway-card" style="--accent:${interest.color}"><header><span aria-hidden="true">${interest.icon}</span><div><p>ONE POSSIBLE PATH</p><h3>${escapeHtml(interest.name)}</h3></div></header><div class="subfield-list" aria-label="Related subfields">${interest.subfields.slice(0, 7).map((subfield) => `<span>${escapeHtml(subfield)}</span>`).join('')}</div><ol>${interest.path.map((step) => `<li>${escapeHtml(step)}</li>`).join('')}</ol><p class="pathway-note">Try this if you’re curious. This is not an admission requirement.</p></article>`).join('');
   }
 
   function topicCard(topic) {
@@ -225,7 +317,7 @@
 
   function renderOnboarding() {
     onboardingChoices = state.profile ? {
-      grade: String(state.profile.grade || ''), usStudy: state.profile.usStudy || '', interests: state.profile.interests || [], collegePlans: state.profile.collegePlans || '', helpDiscovering: state.profile.helpDiscovering || []
+      grade: String(state.profile.grade || ''), usStudy: state.profile.usStudy || '', interests: state.profile.interests || [], explorationSignals: state.profile.explorationSignals || [], collegePlans: state.profile.collegePlans || '', helpDiscovering: state.profile.helpDiscovering || []
     } : emptyChoices();
     syncChoiceButtons();
   }
@@ -240,6 +332,13 @@
         button.setAttribute('aria-pressed', String(selectedValue));
       });
     });
+    const exploring = onboardingChoices.interests.includes('Undecided / Exploring');
+    $('#exploration-prompts').hidden = !exploring;
+    const moreSelected = onboardingChoices.interests.some((interest) => {
+      const area = interestByName(interest);
+      return area && !area.common && interest !== 'Undecided / Exploring';
+    });
+    if (moreSelected) $('.more-interests').open = true;
   }
 
   function selectChoice(button) {
@@ -249,10 +348,10 @@
     if (group.dataset.multiple === 'true') {
       const active = new Set(onboardingChoices[name]);
       if (active.has(value)) active.delete(value); else active.add(value);
-      if (name === 'interests' && value === 'Not sure yet' && active.has(value)) {
-        onboardingChoices[name] = ['Not sure yet'];
+      if (name === 'interests' && value === 'Undecided / Exploring' && active.has(value)) {
+        onboardingChoices[name] = ['Undecided / Exploring'];
       } else {
-        active.delete('Not sure yet');
+        active.delete('Undecided / Exploring');
         onboardingChoices[name] = [...active];
       }
     } else {
@@ -264,27 +363,31 @@
   function submitOnboarding(event) {
     event.preventDefault();
     const missing = ['grade', 'usStudy', 'collegePlans'].filter((key) => !onboardingChoices[key]);
-    if (missing.length || !onboardingChoices.interests.length) {
+    const exploringWithoutSignals = onboardingChoices.interests.includes('Undecided / Exploring') && !onboardingChoices.explorationSignals.length;
+    if (missing.length || !onboardingChoices.interests.length || exploringWithoutSignals) {
       const intro = $('.form-intro');
       const note = $('#form-validation') || document.createElement('p');
       note.id = 'form-validation';
       note.className = 'validation-message';
-      note.textContent = 'Choose your grade, time in the U.S., an interest, and your college plans to continue.';
+      note.textContent = exploringWithoutSignals
+        ? 'Choose at least one thing that sounds interesting so we can suggest several fields to explore.'
+        : 'Choose your grade, time in the U.S., at least one interest or “help me explore,” and your plans to continue.';
       intro.append(note);
       return;
     }
     $('#form-validation')?.remove();
     state.profile = { ...onboardingChoices, isDemo: false };
+    delete state.exploringInterest;
     persist();
     navigate('dashboard');
   }
 
   function startDemo() {
     state = {
-      profile: { grade: '10', usStudy: 'Less than 1 year', interests: ['Computer Science'], collegePlans: 'Yes', helpDiscovering: ['School system', 'Competitions', 'College preparation'], isDemo: true },
+      profile: { grade: '10', usStudy: 'Less than 1 year', interests: ['Computer Science & Technology'], explorationSignals: [], collegePlans: 'Yes', helpDiscovering: ['School system', 'Competitions', 'College preparation', 'Career opportunities'], isDemo: true },
       knownTopics: [],
       discoveryResponses: {},
-      saved: [{ id: 'opportunity-hack-club', sourceId: 'hack-club', kind: 'opportunity', title: 'Explore Hack Club', category: 'Club · Computer Science', timing: 'Start a club any time', status: 'planned', purpose: 'Explore your interest in Computer Science', savedAt: new Date().toISOString(), note: 'A saved Computer Science opportunity from your demo path.' }]
+      saved: [{ id: 'opportunity-hack-club', sourceId: 'hack-club', kind: 'opportunity', title: 'Hack Club', category: 'Club · Computer Science & Technology', timing: 'Start or join any time', status: 'planned', purpose: 'Explore your interest in Computer Science & Technology', savedAt: new Date().toISOString(), note: 'A saved technology opportunity from your demo path.' }]
     };
     persist();
     navigate('dashboard');
@@ -300,6 +403,11 @@
         ? `Explore your interest in ${source.area}`
         : `Build experience in ${source.area}`;
     }
+    if (kind === 'career') {
+      const family = careerFamilyById(source.familyId);
+      const matchingInterest = family?.interests.find((interest) => profileInterests().includes(interest));
+      return matchingInterest ? `Explore how ${source.title} connects to ${matchingInterest}` : `Learn what working as a ${source.title} can involve`;
+    }
     const matchingInterest = profileInterests().find((interest) => source.interests.includes(interest));
     if (matchingInterest) return `Connect ${source.title} to your interest in ${matchingInterest}`;
     if (source.category === 'College prep') return `Prepare early for your possible college path`;
@@ -308,23 +416,25 @@
 
   function saveItem(kind, sourceId) {
     if (isSaved(kind, sourceId)) return;
-    const source = kind === 'topic' ? topicById(sourceId) : opportunityById(sourceId);
+    const source = kind === 'topic' ? topicById(sourceId) : kind === 'career' ? careerById(sourceId) : opportunityById(sourceId);
     if (!source) return;
+    const careerFamily = kind === 'career' ? careerFamilyById(source.familyId) : null;
     state.saved.push({
       id: `${kind}-${sourceId}`,
       sourceId,
       kind,
-      title: kind === 'topic' ? source.title : source.name,
-      category: kind === 'topic' ? source.category : `${source.type} · ${source.area}`,
-      timing: kind === 'topic' ? source.timing : source.timing,
+      title: kind === 'topic' ? source.title : kind === 'career' ? `Explore ${source.title}` : source.name,
+      category: kind === 'topic' ? source.category : kind === 'career' ? `Career exploration · ${careerFamily.name}` : `${source.type} · ${source.area}`,
+      timing: kind === 'career' ? 'Explore this school year' : source.timing,
       status: 'planned',
       purpose: purposeForSource(kind, source),
       savedAt: new Date().toISOString(),
-      note: kind === 'topic' ? source.description : source.description
+      note: kind === 'career' ? source.summary : source.description
     });
     persist();
     renderDashboard();
     if (location.hash === '#opportunities') renderOpportunities();
+    if (location.hash === '#careers') renderCareers();
     if (location.hash === '#roadmap') renderRoadmap();
   }
 
@@ -341,8 +451,9 @@
     if (!topic) return;
     const saved = isSaved('topic', id);
     $('#detail-modal').classList.remove('opportunity-detail');
-    $('#modal-content').innerHTML = `<span class="topic-icon ${topic.color}" aria-hidden="true">${topic.icon}</span><p class="eyebrow">${escapeHtml(topic.category)}</p><h2>${escapeHtml(topic.title)}</h2><p class="modal-summary">${escapeHtml(topic.description)}</p><div class="detail-grid"><div><strong>What it is</strong><p>${escapeHtml(topic.what)}</p></div><div><strong>Why it matters</strong><p>${escapeHtml(topic.why)}</p></div><div><strong>Who it’s for</strong><p>${escapeHtml(topic.who)}</p></div><div><strong>When to think about it</strong><p>${escapeHtml(topic.when)}</p></div></div><div class="detail-next"><strong>A practical next step</strong><br />${escapeHtml(topic.next)}</div><div class="modal-actions"><button class="button button-primary detail-save" type="button" data-action="save-topic" data-id="${topic.id}" ${saved ? 'disabled aria-disabled="true"' : ''}>${saved ? 'Saved to roadmap ✓' : 'Save to roadmap +'}</button></div>`;
-    $('#detail-modal').showModal();
+    $('#detail-modal').classList.remove('career-detail');
+    $('#modal-content').innerHTML = `<span class="topic-icon ${topic.color}" aria-hidden="true">${topic.icon}</span><p class="eyebrow">${escapeHtml(topic.category)}</p><h2 id="detail-title">${escapeHtml(topic.title)}</h2><p class="modal-summary">${escapeHtml(topic.description)}</p><div class="detail-grid"><div><strong>What it is</strong><p>${escapeHtml(topic.what)}</p></div><div><strong>Why it matters</strong><p>${escapeHtml(topic.why)}</p></div><div><strong>Who it’s for</strong><p>${escapeHtml(topic.who)}</p></div><div><strong>When to think about it</strong><p>${escapeHtml(topic.when)}</p></div></div><div class="detail-next"><strong>A practical next step</strong><br />${escapeHtml(topic.next)}</div><div class="modal-actions"><button class="button button-primary detail-save" type="button" data-action="save-topic" data-id="${topic.id}" ${saved ? 'disabled aria-disabled="true"' : ''}>${saved ? 'Saved to roadmap ✓' : 'Save to roadmap +'}</button></div>`;
+    openDetailModal();
   }
 
   function showOpportunityDetail(id) {
@@ -356,8 +467,39 @@
       ? `<a class="button button-secondary" href="${escapeHtml(opportunity.url)}" target="_blank" rel="noopener noreferrer">Visit official resource ↗</a>`
       : '<span class="sample-only-note">Sample category — ask a counselor or search trusted local sources.</span>';
     $('#detail-modal').classList.add('opportunity-detail');
-    $('#modal-content').innerHTML = `<article class="opportunity-profile" style="--accent:${areaColor(opportunity.area)}"><header class="opportunity-profile-header"><div class="opportunity-profile-kicker"><span class="opportunity-profile-icon" aria-hidden="true">${opportunity.icon}</span><span>${escapeHtml(opportunity.type)} · ${escapeHtml(opportunity.area)}</span><span class="resource-badge ${verified ? 'verified' : 'example'}">${verified ? 'Verified resource' : 'Example'}</span></div><h2>${escapeHtml(opportunity.name)}</h2><p class="opportunity-profile-summary">${escapeHtml(opportunity.description)}</p><div class="profile-recommendation"><span aria-hidden="true">✦</span><div><strong>Recommended for you</strong><p>${escapeHtml(recommendation)}</p></div></div></header><dl class="opportunity-profile-meta"><div><dt>Eligibility</dt><dd>Grades ${opportunity.grades.join('–')}</dd><small>${opportunity.beginner ? 'Beginner friendly' : 'Some experience may help'}</small></div><div><dt>Format</dt><dd>${escapeHtml(opportunity.format)}</dd></div><div><dt>Timing</dt><dd>${escapeHtml(opportunity.timing)}</dd></div></dl><section class="why-explore"><span class="section-kicker">WHY EXPLORE THIS?</span><p>${escapeHtml(opportunity.useful)}</p><ul>${benefits.map((benefit) => `<li>${escapeHtml(benefit)}</li>`).join('')}</ul></section><footer class="opportunity-profile-actions"><button class="button button-primary detail-save" type="button" data-action="save-opportunity" data-id="${opportunity.id}" ${saved ? 'disabled aria-disabled="true"' : ''}>${saved ? 'Saved to roadmap ✓' : 'Save to roadmap'}</button>${sourceAction}</footer></article>`;
-    $('#detail-modal').showModal();
+    $('#detail-modal').classList.remove('career-detail');
+    $('#modal-content').innerHTML = `<article class="opportunity-profile" style="--accent:${areaColor(opportunity.area)}"><header class="opportunity-profile-header"><div class="opportunity-profile-kicker"><span class="opportunity-profile-icon" aria-hidden="true">${opportunity.icon}</span><span>${escapeHtml(opportunity.type)} · ${escapeHtml(opportunity.area)}</span><span class="resource-badge ${verified ? 'verified' : 'example'}">${verified ? 'Verified resource' : 'Example'}</span></div><h2 id="detail-title">${escapeHtml(opportunity.name)}</h2><p class="opportunity-profile-summary">${escapeHtml(opportunity.description)}</p><div class="profile-recommendation"><span aria-hidden="true">✦</span><div><strong>Recommended for you</strong><p>${escapeHtml(recommendation)}</p></div></div></header><dl class="opportunity-profile-meta"><div><dt>Eligibility</dt><dd>Grades ${opportunity.grades.join('–')}</dd><small>${opportunity.beginner ? 'Beginner friendly' : 'Some experience may help'}</small></div><div><dt>Format</dt><dd>${escapeHtml(opportunity.format)}</dd></div><div><dt>Timing</dt><dd>${escapeHtml(opportunity.timing)}</dd></div></dl><section class="why-explore"><span class="section-kicker">WHY EXPLORE THIS?</span><p>${escapeHtml(opportunity.useful)}</p><ul>${benefits.map((benefit) => `<li>${escapeHtml(benefit)}</li>`).join('')}</ul></section><footer class="opportunity-profile-actions"><button class="button button-primary detail-save" type="button" data-action="save-opportunity" data-id="${opportunity.id}" ${saved ? 'disabled aria-disabled="true"' : ''}>${saved ? 'Saved to roadmap ✓' : 'Save to roadmap'}</button>${sourceAction}</footer></article>`;
+    openDetailModal();
+  }
+
+  function openDetailModal() {
+    const modal = $('#detail-modal');
+    if (!modal.open) modal.showModal();
+  }
+
+  function showCareerDetail(id) {
+    const career = careerById(id);
+    const family = career && careerFamilyById(career.familyId);
+    if (!career || !family) return;
+    const saved = isSaved('career', id);
+    const relatedCareers = family.careers.filter((item) => item.id !== career.id).slice(0, 4);
+    const relatedOpportunities = rankedOpportunities().filter((item) => family.interests.includes(item.area)).slice(0, 3);
+    $('#detail-modal').classList.remove('opportunity-detail');
+    $('#detail-modal').classList.add('career-detail');
+    $('#modal-content').innerHTML = `<article class="career-profile" style="--accent:${areaColor(family.interests[0])}"><header class="career-profile-header"><div class="career-profile-kicker"><span aria-hidden="true">${family.icon}</span><span>${escapeHtml(family.name)} career family</span></div><h2 id="detail-title">${escapeHtml(career.title)}</h2><p>${escapeHtml(career.summary)}</p><div class="profile-recommendation"><span aria-hidden="true">✦</span><div><strong>Why this is here</strong><p>${escapeHtml(careerRecommendationReason(career))}</p></div></div></header><section class="career-profile-section"><span class="section-kicker">RELATED INTERESTS</span><div class="career-interest-tags">${family.interests.map((interest) => `<span>${escapeHtml(interest)}</span>`).join('')}</div></section><section class="career-profile-section"><span class="section-kicker">EXPLORE IN HIGH SCHOOL</span><ul class="career-explore-list">${family.explore.map((item) => `<li>${escapeHtml(item)}</li>`).join('')}</ul></section><section class="career-profile-section"><span class="section-kicker">POSSIBLE OPPORTUNITIES</span><div class="career-related-opportunities">${relatedOpportunities.map((item) => `<button type="button" data-action="detail-opportunity" data-id="${item.id}"><span>${item.icon}</span><b>${escapeHtml(item.name)}</b><small>${escapeHtml(item.type)} · ${opportunityIsVerified(item) ? 'Verified resource' : 'Example'}</small></button>`).join('')}</div></section><section class="career-profile-section"><span class="section-kicker">RELATED CAREERS</span><p class="related-career-links">${relatedCareers.map((item) => `<button type="button" data-action="detail-career" data-id="${item.id}">${escapeHtml(item.title)}</button>`).join('')}</p></section><footer class="opportunity-profile-actions"><button class="button button-secondary" type="button" data-action="explore-career-path" data-id="${career.id}">Explore this path</button><button class="button button-primary detail-save" type="button" data-action="save-career" data-id="${career.id}" ${saved ? 'disabled aria-disabled="true"' : ''}>${saved ? 'Saved to roadmap ✓' : 'Save to roadmap'}</button></footer><p class="career-caution">This profile is a starting point, not a guaranteed outcome or complete training checklist.</p></article>`;
+    openDetailModal();
+  }
+
+  function exploreCareerPath(id) {
+    const career = careerById(id);
+    const family = career && careerFamilyById(career.familyId);
+    if (!family) return;
+    const selectedMatch = family.interests.find((interest) => interestByName(interest));
+    state.exploringInterest = selectedMatch || family.interests[0];
+    persist();
+    $('#detail-modal').close();
+    navigate('dashboard');
+    window.setTimeout(() => $('#interest-pathways')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
   }
 
   function opportunityIsVerified(opportunity) {
@@ -374,15 +516,17 @@
     return benefits.slice(0, 3);
   }
 
-  function populateInterestFilter() {
-    const select = $('#interest-filter');
-    const areas = [...new Set(window.OPPORTUNITIES.map((opportunity) => opportunity.area))];
-    select.innerHTML = `<option value="All">All interests</option>${areas.map((area) => `<option value="${escapeHtml(area)}">${escapeHtml(area)}</option>`).join('')}`;
+  function populateOpportunityFilters() {
+    const areasWithOpportunities = new Set(window.OPPORTUNITIES.map((opportunity) => opportunity.area));
+    const areas = window.INTEREST_AREAS.map((interest) => interest.name).filter((area) => areasWithOpportunities.has(area));
+    const types = [...new Set(window.OPPORTUNITIES.map((opportunity) => opportunity.type))].sort();
+    $('#interest-filter').innerHTML = `<option value="All">All interests</option>${areas.map((area) => `<option value="${escapeHtml(area)}">${escapeHtml(area)}</option>`).join('')}`;
+    $('#type-filter').innerHTML = `<option value="All">All types</option>${types.map((type) => `<option value="${escapeHtml(type)}">${escapeHtml(type)}</option>`).join('')}`;
   }
 
   function renderOpportunities() {
     if (!hasInitializedFilters) {
-      populateInterestFilter();
+      populateOpportunityFilters();
       $('#interest-filter').value = 'All';
       $('#grade-filter').value = 'All';
       $('#format-filter').value = 'All';
@@ -415,13 +559,50 @@
   }
 
   function areaColor(area) {
-    return ({ 'Computer Science': '#4266dc', Engineering: '#5a4c9c', 'Biology / Medicine': '#509475', Business: '#d76c58', 'Art / Design': '#bd5d84' })[area] || '#4266dc';
+    return interestByName(area)?.color || '#4266dc';
   }
 
   function opportunityCard(opportunity) {
     const saved = isSaved('opportunity', opportunity.id);
     const verified = opportunityIsVerified(opportunity);
     return `<article class="opportunity-card" style="--accent:${areaColor(opportunity.area)}"><div class="opp-top"><span class="opp-icon" aria-hidden="true">${opportunity.icon}</span><div><h3>${escapeHtml(opportunity.name)}</h3><span class="opp-type">${escapeHtml(opportunity.type)} · ${escapeHtml(opportunity.area)}</span></div>${opportunity.beginner ? '<span class="beginner-tag">BEGINNER OK</span>' : ''}</div><div class="opp-tags"><span class="resource-badge ${verified ? 'verified' : 'example'}">${verified ? 'Verified resource' : 'Example'}</span><span>Grades ${opportunity.grades.join('–')}</span><span>${escapeHtml(opportunity.format)}</span></div><p>${escapeHtml(opportunity.description)}</p><p class="recommendation-note"><span aria-hidden="true">✦</span> ${escapeHtml(opportunityRecommendationReason(opportunity))}</p><div class="opp-useful"><strong>Why it may be useful:</strong> ${escapeHtml(opportunity.useful)}</div><div class="opp-bottom"><span class="opp-timing">${escapeHtml(opportunity.timing)}</span><span><button class="mini-button" type="button" data-action="detail-opportunity" data-id="${opportunity.id}">Details</button><button class="opp-save ${saved ? 'saved' : ''}" type="button" data-action="save-opportunity" data-id="${opportunity.id}">${saved ? 'Saved ✓' : 'Save +'}</button></span></div></article>`;
+  }
+
+  function populateCareerFilter() {
+    $('#career-family-filter').innerHTML = `<option value="All">All career families</option>${window.CAREER_FAMILIES.map((family) => `<option value="${family.id}">${escapeHtml(family.name)}</option>`).join('')}`;
+  }
+
+  function renderCareers() {
+    if ($('#career-family-filter').options.length <= 1) populateCareerFilter();
+    const query = $('#career-search').value.trim().toLowerCase();
+    const familyId = $('#career-family-filter').value;
+    const matches = rankedCareers().filter((career) => {
+      const family = careerFamilyById(career.familyId);
+      const haystack = `${career.title} ${career.summary} ${family.name} ${family.interests.join(' ')}`.toLowerCase();
+      return (familyId === 'All' || career.familyId === familyId) && (!query || haystack.includes(query));
+    });
+    const visible = matches.slice(0, careerDisplayLimit);
+    $('#career-count').textContent = matches.length;
+    $('#career-context').textContent = state.profile && familyId === 'All' && !query
+      ? `Career profiles are ranked for your interests. Showing ${visible.length} of ${matches.length}; search or choose a family to explore further.`
+      : `Showing ${visible.length} of ${matches.length} matching career profiles.`;
+    $('#career-list').innerHTML = visible.map(careerCard).join('');
+    $('#career-empty').hidden = matches.length > 0;
+    $('#show-more-careers').hidden = visible.length >= matches.length;
+    $('.career-more-wrap').hidden = matches.length === 0 || visible.length >= matches.length;
+  }
+
+  function careerCard(career) {
+    const family = careerFamilyById(career.familyId);
+    const saved = isSaved('career', career.id);
+    return `<article class="career-card" style="--accent:${areaColor(family.interests[0])}"><header><span class="career-icon" aria-hidden="true">${family.icon}</span><span>${escapeHtml(family.name)}</span></header><h2>${escapeHtml(career.title)}</h2><p>${escapeHtml(career.summary)}</p><div class="career-card-tags">${family.interests.slice(0, 2).map((interest) => `<span>${escapeHtml(interest)}</span>`).join('')}</div><p class="recommendation-note"><span aria-hidden="true">✦</span> ${escapeHtml(careerRecommendationReason(career))}</p><footer><button class="mini-button" type="button" data-action="detail-career" data-id="${career.id}">Career profile</button><button class="save-button ${saved ? 'saved' : ''}" type="button" data-action="save-career" data-id="${career.id}">${saved ? 'Saved ✓' : 'Save +'}</button></footer></article>`;
+  }
+
+  function clearCareerFilters() {
+    $('#career-search').value = '';
+    $('#career-family-filter').value = 'All';
+    careerDisplayLimit = 12;
+    renderCareers();
   }
 
   function roadmapBucket(item) {
@@ -539,24 +720,39 @@
         target.setAttribute('aria-disabled', 'true');
       }
     }
+    if (action === 'save-career') {
+      saveItem('career', id);
+      if (target.closest('#detail-modal')) {
+        target.textContent = 'Saved to roadmap ✓';
+        target.classList.add('saved');
+        target.disabled = true;
+        target.setAttribute('aria-disabled', 'true');
+      }
+    }
     if (action === 'detail-topic') showTopicDetail(id);
     if (action === 'detail-opportunity') showOpportunityDetail(id);
+    if (action === 'detail-career') showCareerDetail(id);
+    if (action === 'explore-career-path') exploreCareerPath(id);
     if (action === 'remove') removeItem(id);
     if (target.classList.contains('demo-trigger')) startDemo();
     if (target.classList.contains('reset-trigger')) $('#reset-modal').showModal();
     if (target.classList.contains('export-trigger')) exportSummary();
     if (target.id === 'clear-filters') clearFilters();
+    if (target.id === 'clear-career-filters' || target.id === 'clear-career-empty') clearCareerFilters();
+    if (target.id === 'show-more-careers') { careerDisplayLimit += 12; renderCareers(); }
     if (target.id === 'confirm-reset') resetData();
     if (target.classList.contains('modal-close')) target.closest('dialog')?.close();
   });
 
   document.addEventListener('change', (event) => {
     if (event.target.matches('.filters select, #beginner-filter')) renderOpportunities();
+    if (event.target.matches('#career-family-filter')) { careerDisplayLimit = 12; renderCareers(); }
     if (event.target.matches('.status-select')) updateStatus(event.target.dataset.id, event.target.value);
   });
 
   document.addEventListener('input', (event) => {
     if (event.target.matches('[data-action="purpose"]')) updatePurpose(event.target.dataset.id, event.target.value);
+    if (event.target.matches('#career-search')) { careerDisplayLimit = 12; renderCareers(); }
   });
 
   $('#onboarding-form').addEventListener('submit', submitOnboarding);
