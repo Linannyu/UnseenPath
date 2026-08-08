@@ -2,125 +2,141 @@
 
 > **Discover what you didn't know to ask.**
 
-UnseenPath is a discovery-first roadmap for newcomer high-school students in the United States. It is a polished hackathon MVP built as a fully local, no-login web app.
+**Live demo:** [https://linannyu.github.io/UnseenPath/](https://linannyu.github.io/UnseenPath/)
 
-## Problem
+UnseenPath is a discovery-first roadmap for newcomer high school students in the United States. Its core idea is simple: **You can't search for something you don't know exists.**
 
-Search engines and AI assistants are powerful when students know what to ask. Newcomer students may not know which school systems, requirements, opportunities, or preparation steps even exist—so they cannot easily search for them. A missed conversation or invisible deadline can make a new school system feel much harder to navigate.
+## Inspiration
 
-## Target users
+Search engines and AI assistants work well when a student already knows what to ask. Newcomer students often face a harder problem: they may not know the names of important school concepts, opportunities, preparation steps, or deadlines. An invisible option cannot become a search query.
 
-Newcomer high-school students in the U.S., especially students who are still learning their school system and the opportunities available around them.
+UnseenPath was inspired by these “unknown unknowns.” It begins before the question, helping students discover what may matter and turn that awareness into manageable action.
 
-## Solution
+## The Problem
 
-UnseenPath changes the model from **Question → Answer** to:
+Newcomer students may not know that important opportunities, resources, requirements, and pathways exist. Credits, counselors, course planning, competitions, summer programs, portfolios, and financial-aid preparation can all involve unfamiliar language or timing.
 
-**Unknown → Discovery → Awareness → Action**
+Missing one conversation or deadline can make a new school system much harder to navigate. General guidance also varies by school, district, state, and individual circumstances, so students need both an accessible starting point and a clear reminder to confirm important details with official sources or a counselor.
 
-Instead of behaving like a generic chatbot, it proactively surfaces concepts and opportunities a student may not know to look for, explains why they matter, and turns useful discoveries into a personal roadmap.
+## What It Does
 
-## Key features
+UnseenPath turns the student journey into:
 
-- A clear landing page that communicates the “unknown unknowns” problem immediately.
-- Fast onboarding for grade, time in the U.S., interests, college plans, and discovery needs.
-- Rule-based personal discovery feed organized into “Important for you now,” “You may not know this exists,” and “Coming soon.”
-- Meaningful ranking based on grade, time in the U.S., academic interests, college plans, and the kinds of help a student selected.
-- Optional U.S. state selection, stored locally to prepare for future localized guidance without claiming complete state-specific coverage.
-- Plain-language recommendation reasons on discovery and opportunity cards—no AI API required.
-- Detail views explaining what each school concept is, why it matters, who it is for, timing, and one practical next step.
-- Opportunity explorer with 25 static verified resources and clearly labeled examples across Computer Science, Engineering, Biology / Medicine, Business, and Art / Design.
-- Listings cover hackathons, competitions, research, programs, robotics, internships, clubs, and projects.
-- The default opportunity view always shows the full catalog, with personal matches ranked first; filters narrow results only when a student chooses them.
-- Clear badges distinguish verified official resources from illustrative example listings.
-- Opportunity profile modals use a spacious, accessible hierarchy for recommendation, eligibility, timing, value, and actions.
-- Filters for interest, grade, format, type, and beginner friendliness.
-- A timeline-based roadmap with planned, in-progress, and completed states.
-- “My Journey” activity history and a printable activity-summary export.
-- Local persistence for profile choices, discovery feedback, roadmap goals, saved items, and completion status.
-- Individual “I know this” and “I didn’t know this” discovery feedback, plus editable personal goals on roadmap items.
-- One-click demo mode for judges: a grade-10 Computer Science newcomer path with an unknown school concept, a relevant opportunity match, an upcoming timing alert, and a pre-saved roadmap item.
-- Reset control for repeatable demos.
+**Discovery → Awareness → Planning → Action**
 
-## How it works
+- A short onboarding flow collects grade, time studying in the U.S., academic interests, college plans, and discovery interests.
+- A rule-based Discovery feed prioritizes useful concepts for the student's grade and interests.
+- “I know this” and “I didn't know this” feedback lets students track familiarity and change their response later.
+- An Opportunities explorer presents 25 verified resources and clearly labeled examples across five interest areas.
+- Spacious Opportunity Details explain eligibility, format, timing, value, and why an item was recommended.
+- Saved topics and opportunities become roadmap steps with planned, in-progress, and completed states.
+- Each roadmap item includes an editable “Why I'm doing this” goal.
+- Completed steps appear in My Journey and can be exported as a printable activity summary.
+- A one-click Demo Mode gives hackathon judges a complete Grade 10 Computer Science newcomer profile.
 
-1. A student completes the short onboarding flow, or a judge selects **Try Demo**.
-2. Simple client-side rules prioritize relevant discovery topics based on grade and interests.
-3. The student reads details, marks concepts as known or newly discovered, and saves useful topics or opportunities.
-4. Saved ideas become timeline items the student can plan, begin, complete, and later export as an activity summary.
+All personalization is deterministic and rule-based. The MVP does not use an AI API, authentication, a backend, or a database.
 
-## Judge demo (under 30 seconds)
+## How We Built It
 
-1. Open the landing page and select **Try Demo**.
-2. The demo loads Maya: Grade 10, less than one year in the U.S., interested in Computer Science, and considering college.
-3. Point out the school concept, hidden discovery, timing alert, and personalized opportunity match on the dashboard.
-4. Open **Opportunities** to show all 25 verified resources and examples ranked for Maya. Try a filter and save one item.
-5. Open **My Roadmap**, change an item from **Planned** to **In progress**, then **Completed** to show it appear in **My Journey**.
-6. Select **Export Activity Summary** to open the clean printable summary.
-7. Use **Reset** to return the app to a clean state for the next judge.
+The project is a static single-page web app with hash-based navigation. Content lives in JavaScript data files, while a client-side recommendation engine scores concepts and opportunities using grade, newcomer status, interests, college plans, and selected discovery needs.
 
-## Technologies used
+Application state is stored in `localStorage`, including the student profile, discovery feedback, saved roadmap items, personal goals, and completion history. The interface uses accessible native controls and dialogs, responsive CSS, relative asset paths, and no build step.
+
+Opportunity records are intentionally separated into:
+
+- **Verified resource:** links to a real official organization, but availability and dates are not checked in real time.
+- **Example:** an illustrative opportunity category, not an actual opening.
+
+## Technologies Used
 
 - HTML5
-- CSS3 (responsive layout, animation, accessibility-focused focus states)
+- CSS3
 - Vanilla JavaScript
-- Static JavaScript data modules (JSON-style data)
+- Static JavaScript data modules
 - `localStorage`
+- Native `<dialog>` elements
+- GitHub Pages
 
-There is no backend, login system, paid API, framework, or build step.
+## Challenges
 
-## Project structure
+- Designing for students who do not yet know the vocabulary needed to search for help.
+- Making personalization useful without a backend or AI API.
+- Keeping sample opportunity categories visually distinct from verified official resources.
+- Preserving a clear recommendation hierarchy while keeping the interface calm and readable.
+- Making the full Discovery → Roadmap story understandable to judges in under 30 seconds.
+- Maintaining reliable state across reloads, filters, modal interactions, and activity-status changes.
 
-```text
-.
-├── index.html             # Application shells and accessible view markup
-├── assets/
-│   └── styles.css          # Responsive visual system
-├── data/
-│   ├── topics.js           # Discovery-topic data
-│   ├── opportunities.js    # Opportunity data
-│   └── rules.js            # Personalization rules
-└── js/
-    └── app.js              # Routing, rendering, interactions, localStorage
-```
+## Accomplishments
 
-## Why it is different
+- Built a complete no-login student journey from discovery through activity history.
+- Created 25 opportunity records across Computer Science, Engineering, Biology / Medicine, Business, and Art / Design.
+- Added rule-based, plain-language explanations for personalized recommendations.
+- Built a focused Demo Mode with personalized concepts, an opportunity match, timing guidance, and a pre-saved roadmap step.
+- Implemented persistent familiarity feedback, editable roadmap goals, and a printable activity summary.
+- Delivered a responsive, accessible experience that works from a GitHub Pages repository subpath.
 
-Most tools wait for a student to formulate a question. UnseenPath starts one step earlier: it makes important possibilities visible before a student knows their name. The main experience is deliberately **Discovery → Awareness → Planning → Action**, not a blank chatbot prompt.
+## What We Learned
 
-## Future improvements
+- Personalization can feel meaningful when a small set of transparent rules is tied closely to a user's context.
+- Explaining why something was recommended builds more trust than ranking alone.
+- For newcomer students, revealing vocabulary and possibilities can be as important as answering questions.
+- A strong demo should show the whole product loop immediately, not require judges to construct a profile first.
+- Clear labels and disclaimers are essential when static examples and real resources appear together.
 
-- AI explanations in the student's native language
-- Automatically updated opportunities
-- Counselor and school-specific resources
+## What's Next
+
+- Multilingual explanations
+- State-specific guidance
+- District- and school-specific resources
+- Automatically updated verified opportunities
 - Deadline notifications
-- More academic fields
-- Verified regional education information
-- Multilingual interface
-- Personalized AI guidance
-- Account synchronization
+- Optional AI-powered explanations
+- Counselor partnerships
 
-## Run locally
+## Judge Demo
 
-The project works by opening `index.html` directly in a modern browser. For the most consistent browser behavior, start a simple static server from this directory:
+The complete flow takes under 30 seconds:
+
+1. Open the [live demo](https://linannyu.github.io/UnseenPath/).
+2. Select **Try Demo**.
+3. Point out the personalized Discovery feed, unfamiliar concept, and upcoming timing guidance.
+4. Open **Opportunities** and show the recommendation reason on a relevant card.
+5. Open **Details**, then save the opportunity to the roadmap.
+6. Open **My Roadmap** and change an item from **Planned** to **In progress**, then **Completed**.
+7. Show the completed item in **My Journey** and select **Export Activity Summary**.
+8. Use **Reset** to return the browser to a clean state.
+
+## Run Locally
+
+The app can be opened directly from `index.html`. For the most consistent behavior, run a static server from the project directory:
 
 ```bash
 python3 -m http.server 8000
 ```
 
-Then open `http://localhost:8000`.
+Then open [http://localhost:8000](http://localhost:8000).
 
-### GitHub Pages
+## Project Structure
 
-The app uses relative asset paths and hash-based client navigation, so it works from a repository subpath without a build step.
+```text
+.
+├── index.html
+├── assets/
+│   └── styles.css
+├── data/
+│   ├── topics.js
+│   ├── opportunities.js
+│   └── rules.js
+└── js/
+    └── app.js
+```
 
-1. Push the project files to the root of a GitHub repository.
-2. In **Settings → Pages**, choose **Deploy from a branch**.
-3. Select the branch and the root (`/`) folder.
-4. Open the Pages URL after deployment completes.
+## Deployment
 
-No environment variables, server rewrites, API keys, or backend are required.
+The app uses relative asset paths and hash-based navigation, so it works at the existing repository URL without renaming paths or adding server rewrites:
 
-## Important note
+[https://linannyu.github.io/UnseenPath/](https://linannyu.github.io/UnseenPath/)
 
-Educational requirements and opportunities can vary by school, district, state, and student circumstances. Students should confirm important requirements with their school counselor or official sources. “Verified resource” listings link to real official organizations but are not checked in real time; “Example” listings are illustrative categories rather than actual openings.
+## Important Note
+
+Educational requirements and opportunities can vary by school, district, state, and student circumstances. Students should confirm important requirements with their school counselor or official sources. “Verified resource” listings link to real official organizations but are not checked in real time; “Example” listings are illustrative categories rather than actual openings. No opportunity guarantees college admission.

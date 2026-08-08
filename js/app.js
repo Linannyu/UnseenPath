@@ -14,7 +14,7 @@
   const opportunityById = (id) => window.OPPORTUNITIES.find((opportunity) => opportunity.id === id);
 
   function emptyChoices() {
-    return { grade: '', usStudy: '', studyState: '', interests: [], collegePlans: '', helpDiscovering: [] };
+    return { grade: '', usStudy: '', interests: [], collegePlans: '', helpDiscovering: [] };
   }
 
   function loadState() {
@@ -24,6 +24,7 @@
       if (parsed?.profile && ['Less than 6 months', '6–12 months'].includes(parsed.profile.usStudy)) {
         parsed.profile.usStudy = 'Less than 1 year';
       }
+      if (parsed?.profile) delete parsed.profile.studyState;
       if (!parsed) return { profile: null, knownTopics: [], discoveryResponses: {}, saved: [] };
       parsed.discoveryResponses = { ...(parsed.discoveryResponses || {}) };
       (parsed.knownTopics || []).forEach((id) => { if (!parsed.discoveryResponses[id]) parsed.discoveryResponses[id] = 'known'; });
@@ -52,7 +53,7 @@
   }
 
   function currentProfile() {
-    return state.profile || { grade: '10', usStudy: '', studyState: '', interests: ['Not sure yet'], collegePlans: 'Maybe', helpDiscovering: [] };
+    return state.profile || { grade: '10', usStudy: '', interests: ['Not sure yet'], collegePlans: 'Maybe', helpDiscovering: [] };
   }
 
   function isDemoProfile() {
@@ -173,7 +174,7 @@
     const gradeMatch = opportunity.grades.includes(Number(profile.grade));
     if (interestMatch && gradeMatch) return `Recommended because you’re a Grade ${profile.grade} student interested in ${opportunity.area}.`;
     if (interestMatch) return `Ranked higher because you selected ${opportunity.area} as an interest.`;
-    if (gradeMatch) return `Recommended because this example includes Grade ${profile.grade} students.`;
+    if (gradeMatch) return `Recommended because it is designed for students in Grade ${profile.grade}.`;
     return 'A nearby field to explore if you want to try something new.';
   }
 
@@ -224,10 +225,9 @@
 
   function renderOnboarding() {
     onboardingChoices = state.profile ? {
-      grade: String(state.profile.grade || ''), usStudy: state.profile.usStudy || '', studyState: state.profile.studyState || '', interests: state.profile.interests || [], collegePlans: state.profile.collegePlans || '', helpDiscovering: state.profile.helpDiscovering || []
+      grade: String(state.profile.grade || ''), usStudy: state.profile.usStudy || '', interests: state.profile.interests || [], collegePlans: state.profile.collegePlans || '', helpDiscovering: state.profile.helpDiscovering || []
     } : emptyChoices();
     syncChoiceButtons();
-    $('#state-select').value = onboardingChoices.studyState || '';
   }
 
   function syncChoiceButtons() {
@@ -281,7 +281,7 @@
 
   function startDemo() {
     state = {
-      profile: { grade: '10', usStudy: 'Less than 1 year', studyState: 'New York', interests: ['Computer Science'], collegePlans: 'Yes', helpDiscovering: ['School system', 'Competitions', 'College preparation'], isDemo: true },
+      profile: { grade: '10', usStudy: 'Less than 1 year', interests: ['Computer Science'], collegePlans: 'Yes', helpDiscovering: ['School system', 'Competitions', 'College preparation'], isDemo: true },
       knownTopics: [],
       discoveryResponses: {},
       saved: [{ id: 'opportunity-hack-club', sourceId: 'hack-club', kind: 'opportunity', title: 'Explore Hack Club', category: 'Club · Computer Science', timing: 'Start a club any time', status: 'planned', purpose: 'Explore your interest in Computer Science', savedAt: new Date().toISOString(), note: 'A saved Computer Science opportunity from your demo path.' }]
@@ -553,7 +553,6 @@
   document.addEventListener('change', (event) => {
     if (event.target.matches('.filters select, #beginner-filter')) renderOpportunities();
     if (event.target.matches('.status-select')) updateStatus(event.target.dataset.id, event.target.value);
-    if (event.target.matches('#state-select')) onboardingChoices.studyState = event.target.value;
   });
 
   document.addEventListener('input', (event) => {
