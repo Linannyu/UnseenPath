@@ -25,13 +25,18 @@ Instead of behaving like a generic chatbot, it proactively surfaces concepts and
 - A clear landing page that communicates the “unknown unknowns” problem immediately.
 - Fast onboarding for grade, time in the U.S., interests, college plans, and discovery needs.
 - Rule-based personal discovery feed organized into “Important for you now,” “You may not know this exists,” and “Coming soon.”
+- Meaningful ranking based on grade, time in the U.S., academic interests, college plans, and the kinds of help a student selected.
+- Plain-language recommendation reasons on discovery and opportunity cards—no AI API required.
 - Detail views explaining what each school concept is, why it matters, who it is for, timing, and one practical next step.
-- Opportunity explorer with static, realistic examples across Computer Science, Engineering, Biology / Medicine, Business, and Art / Design.
+- Opportunity explorer with 25 static examples across Computer Science, Engineering, Biology / Medicine, Business, and Art / Design.
+- Examples cover hackathons, competitions, research, programs, robotics, internships, clubs, and projects.
+- The default opportunity view always shows the full catalog, with personal matches ranked first; filters narrow results only when a student chooses them.
+- Clear sample-listing labels separate discovery examples from real-time verified openings.
 - Filters for interest, grade, format, type, and beginner friendliness.
 - A timeline-based roadmap with planned, in-progress, and completed states.
 - “My Journey” activity history and a printable activity-summary export.
 - Local persistence for profile choices, known concepts, saved items, and completion status.
-- One-click demo mode for judges: a grade-10 Computer Science newcomer path with an unknown school concept, a competition-style recommendation, a deadline reminder, and a saved roadmap item.
+- One-click demo mode for judges: a grade-10 Computer Science newcomer path with an unknown school concept, a relevant opportunity match, an upcoming timing alert, and a pre-saved roadmap item.
 - Reset control for repeatable demos.
 
 ## How it works
@@ -40,6 +45,16 @@ Instead of behaving like a generic chatbot, it proactively surfaces concepts and
 2. Simple client-side rules prioritize relevant discovery topics based on grade and interests.
 3. The student reads details, marks concepts as known, and saves useful topics or opportunities.
 4. Saved ideas become timeline items the student can plan, begin, complete, and later export as an activity summary.
+
+## Judge demo (under 30 seconds)
+
+1. Open the landing page and select **Try Demo**.
+2. The demo loads Maya: Grade 10, less than one year in the U.S., interested in Computer Science, and considering college.
+3. Point out the school concept, hidden discovery, timing alert, and personalized opportunity match on the dashboard.
+4. Open **Opportunities** to show all 25 examples ranked for Maya. Try a filter and save one item.
+5. Open **My Roadmap**, change an item from **Planned** to **In progress**, then **Completed** to show it appear in **My Journey**.
+6. Select **Export Activity Summary** to open the clean printable summary.
+7. Use **Reset** to return the app to a clean state for the next judge.
 
 ## Technologies used
 
@@ -92,6 +107,17 @@ python3 -m http.server 8000
 
 Then open `http://localhost:8000`.
 
+### GitHub Pages
+
+The app uses relative asset paths and hash-based client navigation, so it works from a repository subpath without a build step.
+
+1. Push the project files to the root of a GitHub repository.
+2. In **Settings → Pages**, choose **Deploy from a branch**.
+3. Select the branch and the root (`/`) folder.
+4. Open the Pages URL after deployment completes.
+
+No environment variables, server rewrites, API keys, or backend are required.
+
 ## Important note
 
-Educational requirements and opportunities can vary by school, district, state, and student circumstances. Students should confirm important requirements with their school counselor or official sources.
+Educational requirements and opportunities can vary by school, district, state, and student circumstances. Students should confirm important requirements with their school counselor or official sources. Opportunity records in this MVP are examples for discovery, not real-time verified openings.

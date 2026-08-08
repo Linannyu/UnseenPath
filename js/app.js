@@ -19,6 +19,9 @@
   function loadState() {
     try {
       const parsed = JSON.parse(localStorage.getItem(STORAGE_KEY));
+      if (parsed?.profile && ['Less than 6 months', '6–12 months'].includes(parsed.profile.usStudy)) {
+        parsed.profile.usStudy = 'Less than 1 year';
+      }
       return parsed ? { ...DEFAULT_STATE, ...parsed } : { ...DEFAULT_STATE };
     } catch (error) {
       return { ...DEFAULT_STATE };
@@ -66,17 +69,58 @@
     return Number(currentProfile().grade) || 10;
   }
 
+  function profileInterests() {
+    return currentProfile().interests.filter((interest) => interest !== 'Not sure yet');
+  }
+
+  function isNewcomerProfile() {
+    return ['Less than 1 year', '1–2 years'].includes(currentProfile().usStudy);
+  }
+
+  function topicMatchesDiscoveryHelp(topic) {
+    const help = currentProfile().helpDiscovering;
+    const mapping = {
+      'School system': ['School system', 'Support', 'Academics'],
+      'College preparation': ['College prep'],
+      Competitions: ['Opportunity'],
+      Internships: ['Career exploration', 'Opportunity'],
+      Extracurriculars: ['Community', 'Skill-building', 'Opportunity'],
+      'Financial aid': ['College prep'],
+      'Career opportunities': ['Career exploration', 'Skill-building']
+    };
+    return help.some((choice) => (mapping[choice] || []).includes(topic.category));
+  }
+
   function topicScore(topic) {
     const profile = currentProfile();
     const grade = gradeNumber();
     const priorities = window.RECOMMENDATION_RULES.gradePriorities[grade] || [];
     const priorityIndex = priorities.indexOf(topic.id);
-    let score = priorityIndex === -1 ? 5 : 130 - priorityIndex * 10;
-    if (topic.interests.some((interest) => profile.interests.includes(interest))) score += 44;
-    if (profile.helpDiscovering.some((item) => topic.category.toLowerCase().includes(item.toLowerCase().split(' ')[0]))) score += 15;
-    if (topic.grades.includes(grade)) score += 10;
-    if (state.knownTopics.includes(topic.id)) score -= 55;
+    const interestRuleMatch = profile.interests.some((interest) => (window.RECOMMENDATION_RULES.interestTopics[interest] || []).includes(topic.id));
+    let score = priorityIndex === -1 ? 5 : 150 - priorityIndex * 11;
+    if (topic.interests.some((interest) => profile.interests.includes(interest))) score += 58;
+    if (interestRuleMatch) score += 32;
+    if (topicMatchesDiscoveryHelp(topic)) score += 28;
+    if (isNewcomerProfile() && ['School system', 'Support'].includes(topic.category)) score += 34;
+    if (profile.collegePlans === 'Yes' && topic.category === 'College prep') score += 18;
+    if (profile.collegePlans !== 'Yes' && ['Skill-building', 'Community', 'Career exploration'].includes(topic.category)) score += 10;
+    if (topic.grades.includes(grade)) score += 12;
+    if (state.knownTopics.includes(topic.id)) score -= 80;
     return score;
+  }
+
+  function topicRecommendationReason(topic) {
+    if (!state.profile) return 'Suggested as a useful high-school concept to explore.';
+    const profile = currentProfile();
+    const interest = profileInterests().find((item) => topic.interests.includes(item));
+    if (interest) return `Recommended because you’re a Grade ${profile.grade} student interested in ${interest}.`;
+    if (isNewcomerProfile() && ['School system', 'Support'].includes(topic.category)) {
+      return `Recommended because you’re in Grade ${profile.grade} and still getting familiar with the U.S. school system.`;
+    }
+    if (profile.collegePlans === 'Yes' && topic.category === 'College prep') {
+      return `Recommended because you’re in Grade ${profile.grade} and considering college.`;
+    }
+    return `Recommended for Grade ${profile.grade}: this supports ${window.RECOMMENDATION_RULES.gradeFocusLabels[profile.grade]}.`;
   }
 
   function recommendedTopics() {
@@ -84,6 +128,37 @@
     return window.TOPICS
       .filter((topic) => topic.grades.includes(grade))
       .sort((a, b) => topicScore(b) - topicScore(a));
+  }
+
+  function opportunityScore(opportunity) {
+    const profile = currentProfile();
+    const grade = gradeNumber();
+    const typePriorities = window.RECOMMENDATION_RULES.opportunityTypeBoosts[grade] || [];
+    const typeIndex = typePriorities.indexOf(opportunity.type);
+    const discoveryTypes = profile.helpDiscovering.flatMap((choice) => window.RECOMMENDATION_RULES.discoveryTypeMap[choice] || []);
+    let score = opportunity.grades.includes(grade) ? 42 : 0;
+    if (profileInterests().includes(opportunity.area)) score += 95;
+    if (typeIndex !== -1) score += 38 - typeIndex * 5;
+    if (discoveryTypes.includes(opportunity.type)) score += 34;
+    if (isNewcomerProfile() && opportunity.beginner) score += 18;
+    if (profile.collegePlans === 'Yes' && ['Research', 'Internship', 'Project', 'Program'].includes(opportunity.type)) score += 8;
+    if (isSaved('opportunity', opportunity.id)) score += 4;
+    return score;
+  }
+
+  function rankedOpportunities() {
+    return [...window.OPPORTUNITIES].sort((a, b) => opportunityScore(b) - opportunityScore(a) || a.name.localeCompare(b.name));
+  }
+
+  function opportunityRecommendationReason(opportunity) {
+    if (!state.profile) return 'Suggested as an example of what may be available to high-school students.';
+    const profile = currentProfile();
+    const interestMatch = profileInterests().includes(opportunity.area);
+    const gradeMatch = opportunity.grades.includes(Number(profile.grade));
+    if (interestMatch && gradeMatch) return `Recommended because you’re a Grade ${profile.grade} student interested in ${opportunity.area}.`;
+    if (interestMatch) return `Ranked higher because you selected ${opportunity.area} as an interest.`;
+    if (gradeMatch) return `Recommended because this example includes Grade ${profile.grade} students.`;
+    return 'A nearby field to explore if you want to try something new.';
   }
 
   function renderDashboard() {
@@ -105,7 +180,9 @@
     $('#profile-interests').textContent = profile.interests.filter((item) => item !== 'Not sure yet').slice(0, 2).join(' · ') || 'Exploring your interests';
     $('.title-name').textContent = isDemoProfile() ? ', Maya' : '';
     $('#dashboard-subtitle').textContent = window.RECOMMENDATION_RULES.gradeMessages[grade];
-    $('#insight-banner').innerHTML = `<span aria-hidden="true">✦</span><div><strong>${isDemoProfile() ? 'Demo path unlocked.' : 'Your path is taking shape.'}</strong> ${grade === 10 ? 'Course planning and many summer programs can have early deadlines—add anything interesting to your roadmap before you need it.' : 'Save anything that feels relevant; you can turn it into a small, manageable next step later.'}</div>`;
+    $('#insight-banner').innerHTML = `<span aria-hidden="true">✦</span><div><strong>${isDemoProfile() ? 'Upcoming timing alert:' : 'Your path is taking shape.'}</strong> ${grade === 10 ? 'Course planning and many summer programs can have early deadlines—start exploring before winter and spring application windows.' : 'Save anything that feels relevant; you can turn it into a small, manageable next step later.'}</div>`;
+    const featuredOpportunity = rankedOpportunities().find((opportunity) => opportunity.grades.includes(grade)) || rankedOpportunities()[0];
+    $('#dashboard-opportunity-match').innerHTML = featuredOpportunity ? `<span class="quick-opportunity-icon" style="--accent:${areaColor(featuredOpportunity.area)}" aria-hidden="true">${featuredOpportunity.icon}</span><div><span class="micro-label">YOUR OPPORTUNITY MATCH · SAMPLE</span><h2>${escapeHtml(featuredOpportunity.name)}</h2><p>${escapeHtml(opportunityRecommendationReason(featuredOpportunity))}</p></div><button class="button button-secondary button-small" type="button" data-action="detail-opportunity" data-id="${featuredOpportunity.id}">Explore match →</button>` : '';
     $('#now-topics').innerHTML = now.map(topicCard).join('');
     $('#unknown-topics').innerHTML = (unknown.length ? unknown : topics.slice(3, 6)).map(topicCard).join('');
     $('#soon-topics').innerHTML = (soon.length ? soon : topics.slice(6, 9)).map(topicCard).join('');
@@ -119,6 +196,7 @@
       <h3>${escapeHtml(topic.title)}</h3>
       <p>${escapeHtml(topic.description)}</p>
       <span class="timing-badge">${escapeHtml(topic.timing)}</span>
+      <p class="recommendation-note"><span aria-hidden="true">✦</span> ${escapeHtml(topicRecommendationReason(topic))}</p>
       <div class="topic-why"><strong>Why it matters:</strong> ${escapeHtml(topic.why)}</div>
       <div class="topic-footer"><button class="mini-button" type="button" data-action="known" data-id="${topic.id}">${known ? 'Mark as new' : 'I know this'}</button><button class="mini-button" type="button" data-action="detail-topic" data-id="${topic.id}">Learn more</button><button class="save-button ${saved ? 'saved' : ''}" type="button" data-action="save-topic" data-id="${topic.id}">${saved ? 'Saved ✓' : 'Save +'}</button></div>
     </article>`;
@@ -174,6 +252,7 @@
       intro.append(note);
       return;
     }
+    $('#form-validation')?.remove();
     state.profile = { ...onboardingChoices, isDemo: false };
     persist();
     navigate('dashboard');
@@ -181,9 +260,9 @@
 
   function startDemo() {
     state = {
-      profile: { grade: '10', usStudy: '6–12 months', interests: ['Computer Science'], collegePlans: 'Yes', helpDiscovering: ['School system', 'Competitions', 'College preparation'], isDemo: true },
+      profile: { grade: '10', usStudy: 'Less than 1 year', interests: ['Computer Science'], collegePlans: 'Yes', helpDiscovering: ['School system', 'Competitions', 'College preparation'], isDemo: true },
       knownTopics: [],
-      saved: [{ id: 'topic-hackathons', sourceId: 'hackathons', kind: 'topic', title: 'Join a hackathon', category: 'Opportunity', timing: 'Look for one this spring', status: 'planned', savedAt: new Date().toISOString(), note: 'A saved next step from your demo discovery feed.' }]
+      saved: [{ id: 'opportunity-hack-club', sourceId: 'hack-club', kind: 'opportunity', title: 'Explore Hack Club', category: 'Club · Computer Science', timing: 'Start a club any time', status: 'planned', savedAt: new Date().toISOString(), note: 'A saved Computer Science opportunity from your demo path.' }]
     };
     persist();
     navigate('dashboard');
@@ -236,7 +315,10 @@
     const opportunity = opportunityById(id);
     if (!opportunity) return;
     const saved = isSaved('opportunity', id);
-    $('#modal-content').innerHTML = `<span class="opp-icon" style="--accent:${areaColor(opportunity.area)}" aria-hidden="true">${opportunity.icon}</span><p class="eyebrow">${escapeHtml(opportunity.type)} · ${escapeHtml(opportunity.area)}</p><h2>${escapeHtml(opportunity.name)}</h2><p class="modal-summary">${escapeHtml(opportunity.description)}</p><div class="detail-grid"><div><strong>Who can explore it</strong><p>Grades ${opportunity.grades.join('–')} · ${opportunity.beginner ? 'Beginner friendly' : 'Some experience may help'}</p></div><div><strong>Format & timing</strong><p>${escapeHtml(opportunity.format)} · ${escapeHtml(opportunity.timing)}</p></div></div><div class="detail-next"><strong>Why this may be useful</strong><br />${escapeHtml(opportunity.useful)}</div><div class="modal-actions"><button class="button button-primary detail-save" type="button" data-action="save-opportunity" data-id="${opportunity.id}">${saved ? 'Saved to roadmap ✓' : 'Save to roadmap +'}</button><a class="button button-secondary" href="${escapeHtml(opportunity.url)}" target="_blank" rel="noopener noreferrer">Official site ↗</a></div>`;
+    const sourceAction = opportunity.url
+      ? `<a class="button button-secondary" href="${escapeHtml(opportunity.url)}" target="_blank" rel="noopener noreferrer">Visit official resource ↗</a>`
+      : '<span class="sample-only-note">Sample category — ask a counselor or search trusted local sources.</span>';
+    $('#modal-content').innerHTML = `<span class="opp-icon" style="--accent:${areaColor(opportunity.area)}" aria-hidden="true">${opportunity.icon}</span><p class="eyebrow">SAMPLE · ${escapeHtml(opportunity.type)} · ${escapeHtml(opportunity.area)}</p><h2>${escapeHtml(opportunity.name)}</h2><p class="modal-summary">${escapeHtml(opportunity.description)}</p><p class="recommendation-note modal-recommendation"><span aria-hidden="true">✦</span> ${escapeHtml(opportunityRecommendationReason(opportunity))}</p><div class="detail-grid"><div><strong>Who can explore it</strong><p>Grades ${opportunity.grades.join('–')} · ${opportunity.beginner ? 'Beginner friendly' : 'Some experience may help'}</p></div><div><strong>Format & timing</strong><p>${escapeHtml(opportunity.format)} · ${escapeHtml(opportunity.timing)}</p></div></div><div class="detail-next"><strong>Why this may be useful</strong><br />${escapeHtml(opportunity.useful)}</div><div class="modal-actions"><button class="button button-primary detail-save" type="button" data-action="save-opportunity" data-id="${opportunity.id}">${saved ? 'Saved to roadmap ✓' : 'Save to roadmap +'}</button>${sourceAction}</div>`;
     $('#detail-modal').showModal();
   }
 
@@ -249,9 +331,11 @@
   function renderOpportunities() {
     if (!hasInitializedFilters) {
       populateInterestFilter();
-      const interests = currentProfile().interests.filter((interest) => interest !== 'Not sure yet');
-      if (interests.length === 1) $('#interest-filter').value = interests[0];
-      $('#grade-filter').value = state.profile ? String(state.profile.grade) : 'All';
+      $('#interest-filter').value = 'All';
+      $('#grade-filter').value = 'All';
+      $('#format-filter').value = 'All';
+      $('#type-filter').value = 'All';
+      $('#beginner-filter').checked = false;
       hasInitializedFilters = true;
     }
     const interest = $('#interest-filter').value;
@@ -259,7 +343,8 @@
     const format = $('#format-filter').value;
     const type = $('#type-filter').value;
     const beginner = $('#beginner-filter').checked;
-    const matching = window.OPPORTUNITIES.filter((opportunity) => (
+    const filtersActive = interest !== 'All' || grade !== 'All' || format !== 'All' || type !== 'All' || beginner;
+    const matching = rankedOpportunities().filter((opportunity) => (
       (interest === 'All' || opportunity.area === interest) &&
       (grade === 'All' || opportunity.grades.includes(Number(grade))) &&
       (format === 'All' || opportunity.format === format) &&
@@ -267,6 +352,12 @@
       (!beginner || opportunity.beginner)
     ));
     $('#opportunity-count').textContent = matching.length;
+    $('#opportunity-count-label').innerHTML = filtersActive ? 'matching<br />opportunities' : 'opportunities<br />to explore';
+    $('#opportunities-context').textContent = filtersActive
+      ? `Showing ${matching.length} sample ${matching.length === 1 ? 'match' : 'matches'} for your selected filters.`
+      : state.profile
+        ? `Showing all ${matching.length} sample opportunities, ranked for Grade ${currentProfile().grade} and your interests.`
+        : `Showing all ${matching.length} sample opportunities. Use filters to narrow your path.`;
     $('#opportunity-list').innerHTML = matching.map(opportunityCard).join('');
     $('#opportunity-empty').hidden = matching.length > 0;
   }
@@ -277,7 +368,7 @@
 
   function opportunityCard(opportunity) {
     const saved = isSaved('opportunity', opportunity.id);
-    return `<article class="opportunity-card" style="--accent:${areaColor(opportunity.area)}"><div class="opp-top"><span class="opp-icon" aria-hidden="true">${opportunity.icon}</span><div><h3>${escapeHtml(opportunity.name)}</h3><span class="opp-type">${escapeHtml(opportunity.type)} · ${escapeHtml(opportunity.area)}</span></div>${opportunity.beginner ? '<span class="beginner-tag">BEGINNER OK</span>' : ''}</div><div class="opp-tags"><span>Grades ${opportunity.grades.join('–')}</span><span>${escapeHtml(opportunity.format)}</span></div><p>${escapeHtml(opportunity.description)}</p><div class="opp-useful"><strong>Why it may be useful:</strong> ${escapeHtml(opportunity.useful)}</div><div class="opp-bottom"><span class="opp-timing">${escapeHtml(opportunity.timing)}</span><span><button class="mini-button" type="button" data-action="detail-opportunity" data-id="${opportunity.id}">Details</button><button class="opp-save ${saved ? 'saved' : ''}" type="button" data-action="save-opportunity" data-id="${opportunity.id}">${saved ? 'Saved ✓' : 'Save +'}</button></span></div></article>`;
+    return `<article class="opportunity-card" style="--accent:${areaColor(opportunity.area)}"><div class="opp-top"><span class="opp-icon" aria-hidden="true">${opportunity.icon}</span><div><h3>${escapeHtml(opportunity.name)}</h3><span class="opp-type">${escapeHtml(opportunity.type)} · ${escapeHtml(opportunity.area)}</span></div>${opportunity.beginner ? '<span class="beginner-tag">BEGINNER OK</span>' : ''}</div><div class="opp-tags"><span>EXAMPLE LISTING</span><span>Grades ${opportunity.grades.join('–')}</span><span>${escapeHtml(opportunity.format)}</span></div><p>${escapeHtml(opportunity.description)}</p><p class="recommendation-note"><span aria-hidden="true">✦</span> ${escapeHtml(opportunityRecommendationReason(opportunity))}</p><div class="opp-useful"><strong>Why it may be useful:</strong> ${escapeHtml(opportunity.useful)}</div><div class="opp-bottom"><span class="opp-timing">${escapeHtml(opportunity.timing)}</span><span><button class="mini-button" type="button" data-action="detail-opportunity" data-id="${opportunity.id}">Details</button><button class="opp-save ${saved ? 'saved' : ''}" type="button" data-action="save-opportunity" data-id="${opportunity.id}">${saved ? 'Saved ✓' : 'Save +'}</button></span></div></article>`;
   }
 
   function roadmapBucket(item) {
@@ -337,8 +428,9 @@
     const planned = state.saved.filter((item) => item.status !== 'completed');
     const profile = currentProfile();
     const rows = (items, empty) => items.length ? items.map((item) => `<li><strong>${escapeHtml(item.title)}</strong><br><span>${escapeHtml(item.category)} · ${escapeHtml(item.timing)}</span><p>${escapeHtml(item.note || 'Roadmap activity')}</p></li>`).join('') : `<li>${empty}</li>`;
-    const popup = window.open('', '_blank', 'noopener,noreferrer');
+    const popup = window.open('', '_blank');
     if (!popup) return;
+    popup.opener = null;
     popup.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>My Pathfinder Activity Summary</title><style>body{font-family:Arial,sans-serif;max-width:750px;margin:54px auto;color:#182b38;line-height:1.55;padding:0 24px}h1{font-size:36px;margin-bottom:4px}h2{font-size:20px;border-bottom:2px solid #4266dc;padding-bottom:7px;margin-top:38px}p,span{color:#52636b}li{margin:16px 0}footer{font-size:12px;margin-top:48px;color:#758087}@media print{body{margin:0}}</style></head><body><h1>My Activity Summary</h1><p>Pathfinder personal record · Grade ${escapeHtml(profile.grade)} · Generated ${new Date().toLocaleDateString()}</p><h2>Completed activities</h2><ul>${rows(completed, 'No completed activities yet.')}</ul><h2>Planned next steps</h2><ul>${rows(planned, 'No planned next steps yet.')}</ul><footer>This is a personal organization summary. Verify details and use your own voice in applications.</footer><script>window.onload=()=>window.print()<\/script></body></html>`);
     popup.document.close();
   }
