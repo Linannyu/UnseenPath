@@ -141,6 +141,7 @@ dialog { color:var(--ink); border:0; }.detail-modal { width:min(630px, calc(100v
 #exploration-prompts { padding:15px !important; border:1px solid #dfe4e1 !important; border-radius:13px !important; background:#f7f8f5; }
 
 .exploration-banner { display:flex; align-items:flex-start; gap:13px; margin:0 0 14px; padding:16px 18px; border:1px solid #ded8ee; border-radius:15px; background:#f5f2fb; }
+.exploration-banner[hidden] { display:none; }
 .exploration-banner > span { display:grid; place-items:center; width:32px; height:32px; flex:0 0 auto; border-radius:10px; background:#e8e1f7; color:var(--indigo); font-weight:850; }
 .exploration-banner strong { display:block; margin-bottom:3px; font-size:.79rem; }
 .exploration-banner p { margin:0 0 3px; color:#514878; font-size:.75rem; font-weight:700; line-height:1.45; }
