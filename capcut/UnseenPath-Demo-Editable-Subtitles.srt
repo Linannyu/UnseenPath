@@ -1,0 +1,39 @@
+1
+00:00:00,600 --> 00:00:05,213
+You can't search for something you don't know exists.
+That's why I built UnseenPath.
+
+2
+00:00:09,100 --> 00:00:18,628
+UnseenPath starts by learning a student's grade, experience with the U.S. school system,
+interests, and goals, so every recommendation begins with context.
+
+3
+00:00:21,350 --> 00:00:32,017
+Instead of waiting for students to know the right question, UnseenPath proactively introduces
+important school concepts, upcoming preparation, and resources they may not know about.
+
+4
+00:00:32,300 --> 00:00:40,545
+Students can explore academic fields and career paths, from technology and health
+to art, business, engineering, and public service.
+
+5
+00:00:40,900 --> 00:00:51,599
+Opportunities include competitions, programs, research, and projects. Each one explains why
+it may be useful, and verified resources link to official information.
+
+6
+00:00:56,200 --> 00:01:02,005
+Career Explorer helps students compare many directions
+without treating any one path as a permanent decision.
+
+7
+00:01:06,000 --> 00:01:13,003
+When something matters, students can save it, set a goal, and move it
+from planned, to in progress, to completed.
+
+8
+00:01:17,300 --> 00:01:23,786
+UnseenPath turns discovery into understanding, planning, and action.
+Discover what you didn't know to ask.
