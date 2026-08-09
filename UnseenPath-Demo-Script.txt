@@ -1,0 +1,45 @@
+UNSEENPATH — DEVPOST DEMO VIDEO
+Target runtime: approximately 84 seconds
+
+0:00–0:09 — OPENING
+Visual: UnseenPath landing page and the product's discovery-first story.
+On-screen callouts: “You can't search for something you don't know exists.” / “Meet UnseenPath.”
+Narration: You can't search for something you don't know exists. That's why I built UnseenPath.
+
+0:09–0:21 — ONBOARDING
+Visual: Grade, U.S. school-system experience, interests, post-high-school plans, and discovery goals.
+On-screen callout: “Personalized from the start”
+Narration: UnseenPath starts by learning a student's grade, experience with the U.S. school system, interests, and goals, so every recommendation begins with context.
+
+0:21–0:38 — DISCOVERY AND ACADEMIC PATHS
+Visual: Personalized dashboard, important concepts, unfamiliar resources, upcoming guidance, and an interest path.
+On-screen callouts: “Discover what you may be missing” / “Explore different paths”
+Narration: Instead of waiting for students to know the right question, UnseenPath proactively introduces important school concepts, upcoming preparation, and resources they may not know about.
+
+Narration: Students can explore academic fields and career paths, from technology and health to art, business, engineering, and public service.
+
+0:38–0:56 — OPPORTUNITIES
+Visual: Opportunity recommendations, Save, personalized picoCTF details, verified-resource labeling, and varied opportunity fields.
+On-screen callout: “Find opportunities worth exploring”
+Narration: Opportunities include competitions, programs, research, and projects. Each one explains why it may be useful, and verified resources link to official information.
+
+0:56–1:06 — CAREER EXPLORER
+Visual: Career Explorer, recommended profiles, saved careers, and multiple career families.
+Narration: Career Explorer helps students compare many directions without treating any one path as a permanent decision.
+
+1:06–1:18 — ROADMAP
+Visual: Saved items, planned and completed status changes, progress, and My Journey.
+On-screen callout: “Turn discovery into action”
+Narration: When something matters, students can save it, set a goal, and move it from planned, to in progress, to completed.
+
+1:18–1:24 — ENDING
+Visual: Clean UnseenPath landing-page hold with final branding.
+On-screen text: “UnseenPath” / “Discover what you didn't know to ask.” / “Discovery → Understanding → Planning → Action”
+Narration: UnseenPath turns discovery into understanding, planning, and action. Discover what you didn't know to ask.
+
+EDIT NOTES
+- Source browser chrome, unrelated tabs, and the macOS menu bar are cropped out.
+- Repetitive onboarding and long page scrolling are accelerated.
+- Important details, personalized explanations, Save, and roadmap status changes remain readable.
+- No product behavior is added or simulated; every visual comes from the supplied recording.
+- No background music is used, keeping the generated voiceover clear.
