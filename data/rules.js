@@ -46,6 +46,8 @@ window.RECOMMENDATION_RULES = {
     Extracurriculars: ['Club', 'Robotics', 'Project', 'Volunteering', 'Publication', 'Exhibition'],
     'Career opportunities': ['Internship', 'Program', 'Research', 'Job shadowing'],
     'College preparation': ['Research', 'Program', 'Project'],
-    'Financial aid': ['Program']
+    'Financial aid': ['Program'],
+    'Summer programs': ['Program', 'Research', 'Internship'],
+    'Community opportunities': ['Volunteering', 'Club', 'Project']
   }
 };

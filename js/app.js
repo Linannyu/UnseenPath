@@ -6,6 +6,7 @@
   const DEFAULT_STATE = { profile: null, knownTopics: [], discoveryResponses: {}, saved: [] };
   let state = loadState();
   let onboardingChoices = emptyChoices();
+  let onboardingStep = 1;
   let hasInitializedFilters = false;
   let careerDisplayLimit = 12;
 
@@ -16,6 +17,14 @@
   const careerById = (id) => window.CAREERS.find((career) => career.id === id);
   const interestByName = (name) => window.INTEREST_AREAS.find((interest) => interest.name === name);
   const careerFamilyById = (id) => window.CAREER_FAMILIES.find((family) => family.id === id);
+  const ONBOARDING_STEPS = {
+    1: { phase: 'YOUR STARTING POINT', question: 'What grade are you in?', support: 'This helps us show what may be most useful right now.', aside: 'Let’s find your<br /><em>starting point.</em>', asideSupport: 'There is no perfect answer. Start with where you are today.', note: 'Starting point' },
+    2: { phase: 'YOUR EXPERIENCE', question: 'How long have you studied in the U.S.?', support: 'Your experience helps us prioritize useful school-system guidance.', aside: 'Your experience shapes<br /><em>what may help now.</em>', asideSupport: 'We’ll highlight terms and resources that may still feel unfamiliar.', note: 'Your experience' },
+    3: { phase: 'YOUR INTERESTS', question: 'What are you interested in?', support: 'Select all that apply. You can change these choices later.', aside: 'Your interests can open<br /><em>unseen paths.</em>', asideSupport: 'Choose what makes you curious—or ask us to help you explore.', note: 'Interests' },
+    4: { phase: 'AFTER HIGH SCHOOL', question: 'What are you thinking about after high school?', support: 'There is more than one good path, and your answer can change.', aside: 'There is more than<br /><em>one good path.</em>', asideSupport: 'College, technical education, and work can all be thoughtful next steps.', note: 'Next-step plans' },
+    5: { phase: 'WHAT YOU WANT TO FIND', question: 'What would you like help discovering?', support: 'Select every area where you would like more visibility.', aside: 'Tell us what you want<br /><em>help discovering.</em>', asideSupport: 'We’ll use these choices to make useful topics easier to find.', note: 'Discovery goals' },
+    6: { phase: 'READY TO EXPLORE', question: 'Your path is ready.', support: 'We’ll use your answers to highlight things you may not know about yet.', aside: 'Your path<br /><em>starts here.</em>', asideSupport: 'Explore with curiosity. Nothing here locks you into one future.', note: 'Path ready' }
+  };
 
   function emptyChoices() {
     return { grade: '', usStudy: '', interests: [], explorationSignals: [], collegePlans: '', helpDiscovering: [] };
@@ -38,6 +47,13 @@
         };
         parsed.profile.interests = (parsed.profile.interests || []).map((interest) => interestMigrations[interest] || interest);
         parsed.profile.explorationSignals = parsed.profile.explorationSignals || [];
+        const planMigrations = {
+          Yes: 'Four-year college',
+          Maybe: 'Not sure yet',
+          'Not sure': 'Not sure yet',
+          'No / another path': 'Not sure yet'
+        };
+        parsed.profile.collegePlans = planMigrations[parsed.profile.collegePlans] || parsed.profile.collegePlans || 'Not sure yet';
       }
       if (!parsed) return { profile: null, knownTopics: [], discoveryResponses: {}, saved: [] };
       parsed.discoveryResponses = { ...(parsed.discoveryResponses || {}) };
@@ -67,7 +83,7 @@
   }
 
   function currentProfile() {
-    return state.profile || { grade: '10', usStudy: '', interests: ['Undecided / Exploring'], explorationSignals: [], collegePlans: 'Maybe', helpDiscovering: [] };
+    return state.profile || { grade: '10', usStudy: '', interests: ['Undecided / Exploring'], explorationSignals: [], collegePlans: 'Not sure yet', helpDiscovering: [] };
   }
 
   function isDemoProfile() {
@@ -131,6 +147,10 @@
     return ['Less than 1 year', '1–2 years'].includes(currentProfile().usStudy);
   }
 
+  function consideringCollegePath() {
+    return ['Four-year college', 'Community college'].includes(currentProfile().collegePlans);
+  }
+
   function topicMatchesDiscoveryHelp(topic) {
     const help = currentProfile().helpDiscovering;
     const mapping = {
@@ -140,7 +160,9 @@
       Internships: ['Career exploration', 'Opportunity'],
       Extracurriculars: ['Community', 'Skill-building', 'Opportunity'],
       'Financial aid': ['Financial aid'],
-      'Career opportunities': ['Career exploration', 'Skill-building', 'Field discovery']
+      'Career opportunities': ['Career exploration', 'Skill-building', 'Field discovery'],
+      'Summer programs': ['Opportunity', 'Career exploration', 'Field discovery'],
+      'Community opportunities': ['Community', 'Support', 'Unwritten knowledge']
     };
     return help.some((choice) => (mapping[choice] || []).includes(topic.category));
   }
@@ -157,8 +179,11 @@
     if (interestRuleMatch) score += 32;
     if (topicMatchesDiscoveryHelp(topic)) score += 28;
     if (isNewcomerProfile() && ['School system', 'Support'].includes(topic.category)) score += 34;
-    if (profile.collegePlans === 'Yes' && ['College prep', 'Postsecondary options', 'Financial aid'].includes(topic.category)) score += 18;
-    if (profile.collegePlans !== 'Yes' && ['Skill-building', 'Community', 'Career exploration'].includes(topic.category)) score += 10;
+    if (consideringCollegePath() && ['College prep', 'Postsecondary options', 'Financial aid'].includes(topic.category)) score += 18;
+    if (!consideringCollegePath() && ['Skill-building', 'Community', 'Career exploration'].includes(topic.category)) score += 10;
+    if (profile.collegePlans === 'Community college' && ['community-college', 'dual-enrollment', 'certificate-programs'].includes(topic.id)) score += 38;
+    if (profile.collegePlans === 'Trade / technical program' && ['trade-school', 'certificate-programs', 'cte-pathways', 'apprenticeship-awareness'].includes(topic.id)) score += 48;
+    if (profile.collegePlans === 'Work' && ['internships', 'job-shadowing', 'portfolio', 'projects'].includes(topic.id)) score += 38;
     if (topic.grades.includes(grade)) score += 12;
     if (state.discoveryResponses[topic.id] === 'known') score -= 80;
     if (state.discoveryResponses[topic.id] === 'new') score += 6;
@@ -175,8 +200,8 @@
     if (isNewcomerProfile() && ['School system', 'Support'].includes(topic.category)) {
       return `Recommended because you’re in Grade ${profile.grade} and still getting familiar with the U.S. school system.`;
     }
-    if (profile.collegePlans === 'Yes' && ['College prep', 'Postsecondary options', 'Financial aid'].includes(topic.category)) {
-      return `Recommended because you’re in Grade ${profile.grade} and considering college.`;
+    if (consideringCollegePath() && ['College prep', 'Postsecondary options', 'Financial aid'].includes(topic.category)) {
+      return `Recommended because you’re in Grade ${profile.grade} and exploring ${profile.collegePlans.toLowerCase()}.`;
     }
     return `Recommended for Grade ${profile.grade}: this supports ${window.RECOMMENDATION_RULES.gradeFocusLabels[profile.grade]}.`;
   }
@@ -199,7 +224,9 @@
     if (typeIndex !== -1) score += 38 - typeIndex * 5;
     if (discoveryTypes.includes(opportunity.type)) score += 34;
     if (isNewcomerProfile() && opportunity.beginner) score += 18;
-    if (profile.collegePlans === 'Yes' && ['Research', 'Internship', 'Project', 'Program'].includes(opportunity.type)) score += 8;
+    if (consideringCollegePath() && ['Research', 'Internship', 'Project', 'Program'].includes(opportunity.type)) score += 8;
+    if (profile.collegePlans === 'Trade / technical program' && opportunity.area === 'Skilled Trades & Technical Careers') score += 45;
+    if (profile.collegePlans === 'Work' && ['Internship', 'Job shadowing', 'Volunteering', 'Project'].includes(opportunity.type)) score += 20;
     if (isSaved('opportunity', opportunity.id)) score += 4;
     return score;
   }
@@ -316,10 +343,18 @@
   }
 
   function renderOnboarding() {
-    onboardingChoices = state.profile ? {
-      grade: String(state.profile.grade || ''), usStudy: state.profile.usStudy || '', interests: state.profile.interests || [], explorationSignals: state.profile.explorationSignals || [], collegePlans: state.profile.collegePlans || '', helpDiscovering: state.profile.helpDiscovering || []
-    } : emptyChoices();
-    syncChoiceButtons();
+    const source = state.onboardingDraft || state.profile || emptyChoices();
+    onboardingChoices = {
+      grade: String(source.grade || ''),
+      usStudy: source.usStudy || '',
+      interests: [...(source.interests || [])],
+      explorationSignals: [...(source.explorationSignals || [])],
+      collegePlans: source.collegePlans || '',
+      helpDiscovering: [...(source.helpDiscovering || [])]
+    };
+    onboardingStep = Math.min(6, Math.max(1, Number(state.onboardingStep) || 1));
+    if (!state.onboardingDraft) persistOnboardingDraft();
+    renderOnboardingStep(false);
   }
 
   function syncChoiceButtons() {
@@ -332,13 +367,52 @@
         button.setAttribute('aria-pressed', String(selectedValue));
       });
     });
-    const exploring = onboardingChoices.interests.includes('Undecided / Exploring');
-    $('#exploration-prompts').hidden = !exploring;
-    const moreSelected = onboardingChoices.interests.some((interest) => {
-      const area = interestByName(interest);
-      return area && !area.common && interest !== 'Undecided / Exploring';
-    });
-    if (moreSelected) $('.more-interests').open = true;
+  }
+
+  function persistOnboardingDraft() {
+    state.onboardingDraft = {
+      grade: onboardingChoices.grade,
+      usStudy: onboardingChoices.usStudy,
+      interests: [...onboardingChoices.interests],
+      explorationSignals: [...onboardingChoices.explorationSignals],
+      collegePlans: onboardingChoices.collegePlans,
+      helpDiscovering: [...onboardingChoices.helpDiscovering]
+    };
+    state.onboardingStep = onboardingStep;
+    persist();
+  }
+
+  function onboardingStepIsValid(step = onboardingStep) {
+    if (step === 1) return Boolean(onboardingChoices.grade);
+    if (step === 2) return Boolean(onboardingChoices.usStudy);
+    if (step === 3) return onboardingChoices.interests.length > 0;
+    if (step === 4) return Boolean(onboardingChoices.collegePlans);
+    if (step === 5) return onboardingChoices.helpDiscovering.length > 0;
+    return true;
+  }
+
+  function renderOnboardingStep(moveFocus = true) {
+    const copy = ONBOARDING_STEPS[onboardingStep];
+    $$('[data-onboarding-step]').forEach((step) => { step.hidden = Number(step.dataset.onboardingStep) !== onboardingStep; });
+    $('#onboarding-step-label').textContent = `STEP ${onboardingStep} OF 6`;
+    $('#onboarding-progress').setAttribute('aria-valuenow', String(onboardingStep));
+    $('#onboarding-progress span').style.width = `${(onboardingStep / 6) * 100}%`;
+    $('#onboarding-phase').textContent = copy.phase;
+    $('#onboarding-title').textContent = copy.question;
+    $('#onboarding-support').textContent = copy.support;
+    $('#onboarding-aside-title').innerHTML = copy.aside;
+    $('#onboarding-aside-support').textContent = copy.asideSupport;
+    $('#aside-progress-note').textContent = `${onboardingStep} of 6 · ${copy.note}`;
+    $('#onboarding-navigation').hidden = onboardingStep === 6;
+    $('#onboarding-next').disabled = !onboardingStepIsValid();
+    syncChoiceButtons();
+    if (moveFocus) $('#onboarding-title').focus({ preventScroll: true });
+  }
+
+  function goToOnboardingStep(step) {
+    onboardingStep = Math.min(6, Math.max(1, step));
+    persistOnboardingDraft();
+    renderOnboardingStep();
   }
 
   function selectChoice(button) {
@@ -350,6 +424,7 @@
       if (active.has(value)) active.delete(value); else active.add(value);
       if (name === 'interests' && value === 'Undecided / Exploring' && active.has(value)) {
         onboardingChoices[name] = ['Undecided / Exploring'];
+        onboardingChoices.explorationSignals = [];
       } else {
         active.delete('Undecided / Exploring');
         onboardingChoices[name] = [...active];
@@ -357,34 +432,53 @@
     } else {
       onboardingChoices[name] = value;
     }
-    syncChoiceButtons();
+    persistOnboardingDraft();
+    renderOnboardingStep(false);
   }
 
   function submitOnboarding(event) {
     event.preventDefault();
-    const missing = ['grade', 'usStudy', 'collegePlans'].filter((key) => !onboardingChoices[key]);
-    const exploringWithoutSignals = onboardingChoices.interests.includes('Undecided / Exploring') && !onboardingChoices.explorationSignals.length;
-    if (missing.length || !onboardingChoices.interests.length || exploringWithoutSignals) {
-      const intro = $('.form-intro');
-      const note = $('#form-validation') || document.createElement('p');
-      note.id = 'form-validation';
-      note.className = 'validation-message';
-      note.textContent = exploringWithoutSignals
-        ? 'Choose at least one thing that sounds interesting so we can suggest several fields to explore.'
-        : 'Choose your grade, time in the U.S., at least one interest or “help me explore,” and your plans to continue.';
-      intro.append(note);
+    if (onboardingStep >= 6 || !onboardingStepIsValid()) return;
+    if (onboardingStep < 5) {
+      goToOnboardingStep(onboardingStep + 1);
       return;
     }
-    $('#form-validation')?.remove();
+    completeOnboarding();
+  }
+
+  function completeOnboarding() {
     state.profile = { ...onboardingChoices, isDemo: false };
     delete state.exploringInterest;
+    onboardingStep = 6;
+    state.onboardingStep = 6;
+    state.onboardingDraft = { ...onboardingChoices, interests: [...onboardingChoices.interests], explorationSignals: [...onboardingChoices.explorationSignals], helpDiscovering: [...onboardingChoices.helpDiscovering] };
+    persist();
+    renderOnboardingStep();
+  }
+
+  function exploreOnboarding() {
+    delete state.onboardingDraft;
+    delete state.onboardingStep;
     persist();
     navigate('dashboard');
   }
 
+  function reviewOnboarding() {
+    goToOnboardingStep(1);
+  }
+
+  function backOnboarding() {
+    if (onboardingStep === 1) {
+      persistOnboardingDraft();
+      navigate('home');
+      return;
+    }
+    goToOnboardingStep(onboardingStep - 1);
+  }
+
   function startDemo() {
     state = {
-      profile: { grade: '10', usStudy: 'Less than 1 year', interests: ['Computer Science & Technology'], explorationSignals: [], collegePlans: 'Yes', helpDiscovering: ['School system', 'Competitions', 'College preparation', 'Career opportunities'], isDemo: true },
+      profile: { grade: '10', usStudy: 'Less than 1 year', interests: ['Computer Science & Technology'], explorationSignals: [], collegePlans: 'Four-year college', helpDiscovering: ['School system', 'Competitions', 'College preparation', 'Career opportunities'], isDemo: true },
       knownTopics: [],
       discoveryResponses: {},
       saved: [{ id: 'opportunity-hack-club', sourceId: 'hack-club', kind: 'opportunity', title: 'Hack Club', category: 'Club · Computer Science & Technology', timing: 'Start or join any time', status: 'planned', purpose: 'Explore your interest in Computer Science & Technology', savedAt: new Date().toISOString(), note: 'A saved technology opportunity from your demo path.' }]
@@ -733,6 +827,8 @@
     if (action === 'detail-opportunity') showOpportunityDetail(id);
     if (action === 'detail-career') showCareerDetail(id);
     if (action === 'explore-career-path') exploreCareerPath(id);
+    if (action === 'explore-onboarding') exploreOnboarding();
+    if (action === 'review-onboarding') reviewOnboarding();
     if (action === 'remove') removeItem(id);
     if (target.classList.contains('demo-trigger')) startDemo();
     if (target.classList.contains('reset-trigger')) $('#reset-modal').showModal();
@@ -740,6 +836,7 @@
     if (target.id === 'clear-filters') clearFilters();
     if (target.id === 'clear-career-filters' || target.id === 'clear-career-empty') clearCareerFilters();
     if (target.id === 'show-more-careers') { careerDisplayLimit += 12; renderCareers(); }
+    if (target.id === 'onboarding-back') backOnboarding();
     if (target.id === 'confirm-reset') resetData();
     if (target.classList.contains('modal-close')) target.closest('dialog')?.close();
   });

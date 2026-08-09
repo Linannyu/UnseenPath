@@ -24,7 +24,9 @@ UnseenPath turns the student journey into:
 
 **Discovery → Awareness → Planning → Action**
 
-- A short onboarding flow collects grade, time studying in the U.S., multiple academic interests, college plans, and discovery interests.
+- A calm six-step onboarding flow asks one question at a time about grade, time studying in the U.S., multiple academic interests, plans after high school, and discovery needs.
+- Accurate progress, Back and Continue controls, answer validation, and browser-refresh recovery keep the flow predictable. Existing profiles can reopen onboarding with their answers prefilled.
+- Postsecondary choices include four-year college, community college, trade or technical education, work, and an undecided option—college is never treated as the only path.
 - Fifteen student-friendly interest choices cover technology, health, art, business, law, media, education, skilled trades, and more. An “Undecided / Exploring” path turns broad curiosity signals into several fields to consider without prescribing a career.
 - A rule-based Discovery feed prioritizes useful concepts for the student's grade and interests.
 - “I know this” and “I didn't know this” feedback lets students track familiarity and change their response later.
@@ -45,7 +47,7 @@ The project is a static single-page web app with hash-based navigation. Content 
 
 The content model connects the same interest taxonomy to Discovery topics, Possible Paths, career families, Opportunities, and Roadmap items. This prevents those experiences from behaving like unrelated lists and keeps an Art, Health, Law, Business, Education, or Skilled Trades profile from being dominated by coding content.
 
-Application state is stored in `localStorage`, including the student profile, discovery feedback, saved roadmap items, personal goals, and completion history. The interface uses accessible native controls and dialogs, responsive CSS, relative asset paths, and no build step.
+Application state is stored in one existing `localStorage` record, including the student profile, an in-progress onboarding draft, discovery feedback, saved roadmap items, personal goals, and completion history. The interface uses accessible native controls and dialogs, responsive CSS, relative asset paths, and no build step.
 
 Opportunity records are intentionally separated into:
 
@@ -70,6 +72,7 @@ Opportunity records are intentionally separated into:
 - Keeping sample opportunity categories visually distinct from verified official resources.
 - Preserving a clear recommendation hierarchy while keeping the interface calm and readable.
 - Making the full Discovery → Roadmap story understandable to judges in under 30 seconds.
+- Turning a dense profile form into six focused screens without changing the existing profile format or breaking Demo Mode.
 - Maintaining reliable state across reloads, filters, modal interactions, and activity-status changes.
 
 ## Accomplishments
@@ -81,6 +84,7 @@ Opportunity records are intentionally separated into:
 - Added development-only content equity validation for IDs, counts, relationships, URL formats, paths, and subfields.
 - Added rule-based, plain-language explanations for personalized recommendations.
 - Built a focused Demo Mode with personalized concepts, an opportunity match, timing guidance, and a pre-saved roadmap step.
+- Reworked onboarding into a responsive one-question-per-screen experience with accurate progress, multi-select steps, review, editing, validation, and draft recovery.
 - Implemented persistent familiarity feedback, editable roadmap goals, and a printable activity summary.
 - Delivered a responsive, accessible experience that works from a GitHub Pages repository subpath.
 
