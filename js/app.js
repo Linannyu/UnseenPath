@@ -101,9 +101,15 @@
   }
 
   function renderRoute(route) {
+    const appRoutes = ['dashboard', 'opportunities', 'careers', 'roadmap'];
     const selectedRoute = route || location.hash.slice(1) || 'home';
+    if (appRoutes.includes(selectedRoute) && !state.profile) {
+      navigate('home');
+      return;
+    }
     $$('.view').forEach((view) => view.classList.toggle('is-active', view.id === selectedRoute));
-    document.body.classList.toggle('is-in-app', selectedRoute !== 'home' && selectedRoute !== 'onboarding');
+    document.body.classList.toggle('is-in-app', appRoutes.includes(selectedRoute));
+    $('.nav-links').hidden = !appRoutes.includes(selectedRoute);
     if (selectedRoute === 'onboarding') renderOnboarding();
     if (selectedRoute === 'dashboard') renderDashboard();
     if (selectedRoute === 'opportunities') renderOpportunities();

@@ -270,9 +270,12 @@ dialog { color:var(--ink); border:0; }.detail-modal { width:min(630px, calc(100v
 .onboarding-navigation .button { min-width:112px; }
 .onboarding-navigation .button:disabled { cursor:not-allowed; transform:none; box-shadow:none; background:#cbd3e3; color:#f7f8fb; }
 .completion-step { display:flex; min-height:285px; flex-direction:column; justify-content:center; }
-.completion-mark { display:grid; place-items:center; width:58px; height:58px; margin-bottom:26px; border-radius:18px; background:#e7ecff; color:var(--blue); font-size:1.8rem; }
-.completion-actions { display:flex; flex-wrap:wrap; gap:10px; }
-.completion-step > p { margin:18px 0 0; color:#7d888d; font-size:.68rem; }
+.completion-main { display:flex; align-items:center; gap:14px; }
+.completion-mark { display:grid; flex:0 0 auto; place-items:center; width:58px; height:58px; margin:0; border-radius:18px; background:#e7ecff; color:var(--blue); font-size:1.8rem; }
+.completion-actions { display:flex; min-width:0; flex-wrap:wrap; gap:10px; }
+.completion-step > p { margin:18px 0 0 72px; color:#7d888d; font-size:.68rem; }
+.nav-links[hidden] { display:none; }
+.confirm-modal > .dialog-close-icon { position:absolute; top:14px; right:16px; display:grid; width:32px; height:32px; margin:0; padding:0; border-radius:50%; font-size:1.42rem; }
 
 @media (max-width:970px) {
   .onboarding-panel { min-height:0; }
@@ -294,6 +297,9 @@ dialog { color:var(--ink); border:0; }.detail-modal { width:min(630px, calc(100v
   .onboarding-navigation { padding-top:23px; }
   .onboarding-navigation .button { min-width:101px; min-height:45px; padding:0 16px; }
   .completion-step { min-height:240px; }
+  .completion-main { align-items:flex-start; gap:10px; }
+  .completion-mark { width:48px; height:48px; border-radius:14px; font-size:1.5rem; }
   .completion-actions { align-items:stretch; flex-direction:column; }
   .completion-actions .button { width:100%; }
+  .completion-step > p { margin-left:58px; }
 }
